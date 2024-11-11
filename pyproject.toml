@@ -1,0 +1,22 @@
+[tool.poetry]
+package-mode = false
+name = "fw-h"
+version = "0.1.0"
+description = "A solver for the Ffowcs Williams and Hawkings (FW-H) equation written in Python using Farassat's Formulation 1A."
+license = "MIT"
+authors = [
+	"Matthew Mehrtens <12023414+mcmehrtens@users.noreply.github.com>",
+]
+readme = "README.md"
+repository = "https://github.com/mcmehrtens/FW-H-Solver"
+keywords = ["fw-h", "solver"]
+
+
+[tool.poetry.dependencies]
+python = "^3.13"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
