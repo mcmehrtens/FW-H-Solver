@@ -1,1 +1,14 @@
-# FW-H equation solver config
+---
+source:
+  coordinate:
+    x: 0
+    y: 0
+    z: 0
+  shape: sin
+  amplitude: 5e6
+  constants:
+    c_0: 340.2    # [m/s]
+    rho_0: 1.225  # [kg/m^3]
+    p_0: 10.13e4  # [Pa]
+    T_0: 15       # [ºC]
+...
