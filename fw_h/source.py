@@ -62,21 +62,39 @@ class SourceData:
         self.source_type = config.source.description
         self.source_shape_function = parse_shape_function(config.source.shape)
 
-        self.fw_h_surface_velocity_potential = (
-            self.generate_source_data(self.fw_h_surface)
-        )
-        self.observer_surface_velocity_potential = (
-            self.generate_source_data(self.observer_surface)
-        )
+        (
+            self.fw_h_surface_velocity_potential,
+            self.fw_h_surface_pressure,
+            self.fw_h_surface_velocity_x,
+            self.fw_h_surface_velocity_y,
+            self.fw_h_surface_velocity_z,
+        ) = self.generate_source_data(self.fw_h_surface)
+
+        # TODO: observer does not need velocity calculations
+        (
+            self.observer_surface_velocity_potential,
+            self.observer_surface_pressure,
+            self.fw_h_surface_velocity_x,
+            self.fw_h_surface_velocity_y,
+            self.fw_h_surface_velocity_z,
+        ) = self.generate_source_data(self.observer_surface)
 
     def generate_source_data(self,
-                             surface: Surface) -> NDArray[NDArray[np.float64]]:
+                             surface: Surface) -> (
+            NDArray[NDArray[np.float64]],
+            NDArray[NDArray[np.float64]],
+            Tuple[
+                NDArray[NDArray[np.float64]],
+                NDArray[NDArray[np.float64]],
+                NDArray[NDArray[np.float64]]
+            ]
+    ):
         """Generate source data over a surface.
 
         Parameters
         ----------
         surface
-            Points to calculate velocity potential for
+            Points to calculate surface data for
 
         Returns
         -------
@@ -84,8 +102,24 @@ class SourceData:
             Matrix of velocity potentials. Each row corresponds to a
             time step. Each column corresponds to the corresponding
             coordinate in the surface object.
+        NDArray[NDArray[np.float64]]
+            Matrix of surface pressures. Each row corresponds to a
+            time step. Each column corresponds to the corresponding
+            coordinate in the surface object.
+        NDArray[NDArray[np.float64]]
+            Surface velocity in x-direction. Each row corresponds to a
+            time step. Each column corresponds to the corresponding
+            coordinate in the surface object.
+        NDArray[NDArray[np.float64]]
+            Surface velocity in y-direction. Each row corresponds to a
+            time step. Each column corresponds to the corresponding
+            coordinate in the surface object.
+        NDArray[NDArray[np.float64]]
+            Surface velocity in z-direction. Each row corresponds to a
+            time step. Each column corresponds to the corresponding
+            coordinate in the surface object.
         """
-        return calculate_velocity_potential(
+        phi = calculate_velocity_potential(
             surface,
             self.time_domain,
             (
@@ -99,6 +133,13 @@ class SourceData:
             self.config.source.frequency,
             self.config.source.constants.c_0
         )
+        p = calculate_pressure(
+            phi,
+            self.time_domain,
+            self.config.source.constants.rho_0
+        )
+        V_x, V_y, V_z = calculate_velocity(phi, surface)
+        return phi, p, V_x, V_y, V_z
 
 
 def calculate_velocity_potential(surface: Surface,
@@ -165,3 +206,40 @@ def calculate_velocity_potential(surface: Surface,
         case _:
             raise ValueError(f"Invalid source type: {source_type}")
     return phi
+
+
+def calculate_pressure(phi: NDArray[NDArray[np.float64]],
+                       time_domain: NDArray[np.float64],
+                       rho_0: float) -> NDArray[NDArray[np.float64]]:
+    """Calculate pressure over a surface.
+
+    Parameters
+    ----------
+    phi
+        Velocity potential over a surface. Each row corresponds to a
+        time step in time_domain. Each column corresponds to a point on
+        the surface.
+    time_domain
+        Time steps over which to calculate the pressure
+    rho_0
+        Ambient fluid density
+
+    Returns
+    -------
+    NDArray[NDArray[np.float64]]
+        Pressure at each point at each time step in time_domain
+    """
+    return rho_0 * np.gradient(phi, time_domain, axis=0)
+
+
+def calculate_velocity(phi: NDArray[NDArray[np.float64]],
+                       surface: Surface) -> (
+        NDArray[NDArray[np.float64]],
+        NDArray[NDArray[np.float64]],
+        NDArray[NDArray[np.float64]]
+):
+    # TODO: refactor so that spatial derivatives are done on each face
+    V_x = np.gradient(phi, surface.x, axis=1)
+    V_y = np.gradient(phi, surface.y, axis=1)
+    V_z = np.gradient(phi, surface.z, axis=1)
+    return V_x, V_y, V_z

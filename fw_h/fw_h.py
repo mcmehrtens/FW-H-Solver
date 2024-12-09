@@ -1,6 +1,8 @@
 """Entrypoint to the FW-H solver."""
 import argparse
 
+from matplotlib import pyplot as plt
+
 from fw_h.config import Config
 from fw_h.source import SourceData
 
@@ -33,6 +35,10 @@ def main():
     config = Config(args.config).get()
 
     source = SourceData(config)
+
+    plt.figure()
+    plt.plot(source.fw_h_surface.x)
+    plt.show()
 
 
 if __name__ == "__main__":

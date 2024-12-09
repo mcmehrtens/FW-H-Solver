@@ -16,7 +16,7 @@ source:
   time_domain:
     start_time: 0  # [T]
     end_time: 5  # [T]
-    n: 100
+    n: 1000
 fw_h_surface:
   centroid:
     x: 0  # [L]
