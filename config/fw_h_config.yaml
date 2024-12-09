@@ -1,14 +1,32 @@
 ---
 source:
-  coordinate:
-    x: 0
-    y: 0
-    z: 0
+  centroid:
+    x: 0  # [L]
+    y: 0  # [L]
+    z: 0  # [L]
+  description: monopole
   shape: sin
-  amplitude: 5e6
+  amplitude: 1e8
+  frequency: 5  # [T^-1]
   constants:
-    c_0: 340.2    # [m/s]
-    rho_0: 1.225  # [kg/m^3]
-    p_0: 10.13e4  # [Pa]
-    T_0: 15       # [ºC]
+    c_0: 340.2    # [L * T^-1]
+    rho_0: 1.225  # [M * L^-3]
+    p_0: 10.13e4  # [F * L^-2]
+    T_0: 15       # [Θ]
+  time_domain:
+    start_time: 0  # [T]
+    end_time: 5  # [T]
+    n: 100
+fw_h_surface:
+  centroid:
+    x: 0  # [L]
+    y: 0  # [L]
+    z: 0  # [L]
+  r: 30e3  # [L]
+  n: 1000
+observer:
+  centroid:
+    x: 2.4  # [L]
+    y: 7.6  # [L]
+    z: 3.0  # [L]
 ...

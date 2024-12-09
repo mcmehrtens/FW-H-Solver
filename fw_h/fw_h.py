@@ -2,6 +2,7 @@
 import argparse
 
 from fw_h.config import Config
+from fw_h.source import SourceData
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -30,6 +31,8 @@ def main():
     """Start the FW-H solver."""
     args = parse_arguments()
     config = Config(args.config).get()
+
+    source = SourceData(config)
 
 
 if __name__ == "__main__":
