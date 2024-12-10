@@ -1,15 +1,17 @@
 """Entrypoint to the FW-H solver."""
 import argparse
+import json
 import logging
 from datetime import datetime
 from pathlib import Path
 
 import yaml
 
-from fw_h.config import Config
+from fw_h.config import (
+    Config,
+    ConfigSchema,
+)
 from fw_h.source import SourceData
-
-logger = None
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -92,31 +94,67 @@ def configure_logging(verbose: bool,
     return logging.getLogger(__name__)
 
 
+def source_routine(logger: logging.Logger,
+                   config: ConfigSchema,
+                   write: bool):
+    """Generate and optionally write the source data to a file.
+
+    Parameters
+    ----------
+    logger
+        This modules logging object
+    config
+        Configuration object parsed from the YAML configuration file
+    write
+        Whether the source data should be written to a file
+    """
+    logger.info("Beginning source generation routine...")
+    source = SourceData(config)
+    source.compute()
+    if write:
+        logger.info("Beginning source writing routine...")
+        source.write_data()
+
+
+def solver_routine(logger: logging.Logger,
+                   config: ConfigSchema):
+    """Solve for observer pressure given the input data.
+
+    Parameters
+    ----------
+    logger
+        This modules logging object
+    config
+        Configuration object parsed from the YAML configuration file
+    """
+    logger.info("Beginning solver routine...")
+    pass
+
+
 def main():
     """Start the FW-H solver."""
-    global logger
     program_start = datetime.now()
     args = parse_arguments()
 
     config = Config(args.config).get()
 
     logger = configure_logging(args.verbose,
-                               config.solver.logging_dir,
-                               config.solver.log_file_timestamp,
+                               config.solver.logging.logging_dir,
+                               config.solver.logging.log_file_timestamp,
                                program_start)
 
     logger.info("Starting FW-H solver...")
+    logger.debug("Command-Line Arguments:\n%s",
+                 json.dumps(vars(args), indent=4))
     logger.debug("Configuration file:\n%s",
                  yaml.dump(config.model_dump(warnings="error"),
                            default_flow_style=False)
                  )
 
     if args.source or args.write_source:
-        logger.info("Beginning source generation routine...")
-        source = SourceData(config)
-        if args.write_source:
-            logger.info("Beginning source writing routine...")
-            source.write_data()
+        source_routine(logger, config, args.write_source)
+    else:
+        solver_routine(logger, config)
 
     logger.info("Exiting script...")
 

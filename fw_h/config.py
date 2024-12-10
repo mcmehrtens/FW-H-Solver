@@ -10,17 +10,30 @@ from pydantic import (
 
 
 class SourceType(Enum):
+    """Types of supported theoretical acoustic sources."""
     MONOPOLE = "monopole"
     DIPOLE = "dipole"
     QUADRUPOLE = "quadrupole"
 
 
-class Solver(BaseModel):
+class Logging(BaseModel):
     logging_dir: str = Field(description="Logging directory")
     log_file_timestamp: str = Field(description="Log file timestamp")
-    input_dir: str = Field(description="Input directory")
+
+
+class Input(BaseModel):
+    input_file: str = Field(description="Path to input file")
+
+
+class Output(BaseModel):
     output_dir: str = Field(description="Output directory")
     output_file_timestamp: str = Field(description="Output file timestamp")
+
+
+class Solver(BaseModel):
+    logging: Logging
+    input: Input
+    output: Output
 
 
 class Centroid(BaseModel):
@@ -73,16 +86,44 @@ class ConfigSchema(BaseModel):
 
 
 class Config:
+    """Encapsulate all the configuration options for the FW-H solver.
+
+    Parameters
+    ----------
+    file_path
+        Path to the YAML configuration file
+
+    Attributes
+    ----------
+    file_path
+    data
+        Parsed and validated configuration object
+    """
+
     def __init__(self, file_path: str):
         self.file_path = file_path
         self.data = self._load_and_validate()
 
     def _load_and_validate(self) -> ConfigSchema:
+        """Open, parse, and validate the YAML configuration file.
+
+        Returns
+        -------
+        ConfigSchema
+            Parsed and validated configuration object
+        """
         with open(self.file_path, "r") as file:
             raw_data = yaml.safe_load(file)
             return ConfigSchema(**raw_data)
 
     def get(self) -> ConfigSchema:
+        """Return the configuration object.
+
+        Returns
+        -------
+        ConfigSchema
+            Parsed and validated configuration object
+        """
         return self.data
 
 

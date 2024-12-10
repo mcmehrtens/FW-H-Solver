@@ -182,6 +182,19 @@ class SourceData:
             self._velocity_z_fn
         ) = self.generate_source_functions()
 
+        self.fw_h_velocity_potential = np.ndarray(0)
+        self.observer_velocity_potential = np.ndarray(0)
+
+        self.fw_h_pressure = np.ndarray(0)
+        self.observer_pressure = np.ndarray(0)
+
+        self.fw_h_velocity_x = np.ndarray(0)
+        self.fw_h_velocity_y = np.ndarray(0)
+        self.fw_h_velocity_z = np.ndarray(0)
+
+    def compute(self):
+        """Compute the source data."""
+        logger.info("Beginning source computation...")
         self.fw_h_velocity_potential = self.calculate_velocity_potential(True)
         self.observer_velocity_potential = (
             self.calculate_velocity_potential(False)
@@ -356,6 +369,7 @@ class SourceData:
         data_path = Path(output_dir) / f"{timestamp}-fw-h.npz"
         logger.info("Writing data to %s...", data_path)
         logger.info("This may take a while...")
+
         np.savez_compressed(data_path,
                             fw_h_surface_x=self.fw_h_surface.x,
                             fw_h_surface_y=self.fw_h_surface.y,
