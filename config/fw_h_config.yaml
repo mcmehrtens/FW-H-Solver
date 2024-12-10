@@ -16,14 +16,14 @@ source:
   time_domain:
     start_time: 0  # [T]
     end_time: 5  # [T]
-    n: 1000
+    n: 100
 fw_h_surface:
   centroid:
     x: 0  # [L]
     y: 0  # [L]
     z: 0  # [L]
   r: 30e3  # [L]
-  n: 1000
+  n: 100
 observer:
   centroid:
     x: 2.4  # [L]

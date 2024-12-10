@@ -1,8 +1,7 @@
 """Import the FW-H configuration."""
 from enum import Enum
-from typing import Callable
 
-import numpy as np
+import sympy as sp
 import yaml
 from pydantic import (
     BaseModel,
@@ -50,10 +49,8 @@ class FW_H_Surface(BaseModel):
     centroid: Centroid
     r: float = Field(description="Perpendicular distance from centroid to "
                                  "each face of the FW-H surface")
-    n: int = Field(description="Number of points on each face of the FW-H "
-                               "surface. If n is not a perfect square, the "
-                               "number of points per face will be rounded to "
-                               "the nearest perfect square.")
+    n: int = Field(description="Number of points on each edge of the FW-H "
+                               "surface.")
 
 
 class Observer(BaseModel):
@@ -80,10 +77,7 @@ class Config:
         return self.data
 
 
-def parse_shape_function(shape: str) -> Callable[
-    [np.ndarray[np.float64]],
-    np.ndarray[np.float64]
-]:
+def parse_shape_function(shape: str) -> sp.FunctionClass:
     """Parse the shape function field into a callable function.
 
     Parameters
@@ -93,19 +87,17 @@ def parse_shape_function(shape: str) -> Callable[
 
     Returns
     -------
-    Callable[[np.ndarray[np.float64]], np.ndarray[np.float64]]
-        Function to be used as the shape function
+    FunctionClass
+        SymPy function to be used as the shape function
 
     Raises
     ------
     ValueError
         If the shape function field is not an implemented callable
     """
-    match shape:
+    match shape.lower():
         case "sin":
-            fn = np.sin
-        case "cos":
-            fn = np.cos
+            fn = sp.sin
         case _:
             raise ValueError(f"Invalid shape function: {shape}")
     return fn

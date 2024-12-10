@@ -1,12 +1,13 @@
 """Generate the data resulting from a theoretical source."""
 from typing import (
-    Callable,
     Tuple,
+    Callable,
 )
 
 import numpy as np
-from numpy import linalg as la
+import sympy as sp
 from numpy.typing import NDArray
+from sympy.utilities.lambdify import lambdify
 
 from fw_h.config import (
     ConfigSchema,
@@ -19,8 +20,74 @@ from fw_h.geometry import (
 )
 
 
+def evaluate_monopole_source_functions(
+        source_shape_fn: sp.FunctionClass
+) -> Tuple[Callable, Callable, Callable, Callable, Callable]:
+    """Symbolically evaluate monopole source functions.
+
+    Calculates the velocity potential field function, pressure field
+    function, and the velocity field function. These functions are
+    evaluated symbolically and then lambdified to use for NumPy.
+
+    Parameters
+    ----------
+    source_shape_fn
+        SymPy function to use for the shape of the source perturbations
+
+    Returns
+    -------
+    Callable
+        Velocity potential field function
+    Callable
+        Pressure field function
+    Callable
+        Velocity field (x-component) function
+    Callable
+        Velocity field (y-component) function
+    Callable
+        Velocity field (z-component) function
+    """
+    x, y, z, x_0, y_0, z_0, t, A, omega, c_0, rho_0 = sp.symbols(
+        "x y z x_0 y_0 z_0 t A omega c_0 rho_0"
+    )
+
+    r = sp.sqrt((x - x_0) ** 2 + (y - y_0) ** 2 + (z - z_0) ** 2)
+    phi = -A * source_shape_fn(omega * t - r / c_0) / (4 * sp.pi * r)
+    p = -rho_0 * sp.diff(phi, t)
+    V_x = sp.diff(phi, x)
+    V_y = sp.diff(phi, y)
+    V_z = sp.diff(phi, z)
+
+    phi_fn = lambdify(
+        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0),
+        phi,
+        modules="numpy"
+    )
+    p_fn = lambdify(
+        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0, rho_0),
+        p,
+        modules="numpy"
+    )
+    V_x_fn = lambdify(
+        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0),
+        V_x,
+        modules="numpy"
+    )
+    V_y_fn = lambdify(
+        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0),
+        V_y,
+        modules="numpy"
+    )
+    V_z_fn = lambdify(
+        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0),
+        V_z,
+        modules="numpy"
+    )
+    return phi_fn, p_fn, V_x_fn, V_y_fn, V_z_fn
+
+
 class SourceData:
-    """Generates source data given a source description and surfaces.
+    """Generates all the data for an analytical acoustic source.
 
     Parameters
     ----------
@@ -29,16 +96,35 @@ class SourceData:
 
     Attributes
     ----------
+    config
     fw_h_surface
         Penetrable FW-H surface encapsulating the source
     observer_surface
         Observer points to calculate the theoretical solution for
     time_domain
         Time steps
-    source_type
-        Analytical description of the source
     source_shape_function
         Shape of pressure perturbations caused by the source
+    fw_h_velocity_potential
+        Velocity potential on the FW-H surface calculated over time.
+        Each row corresponds to a time step. Each column corresponds to
+        the same index on the surface.
+    observer_velocity_potential
+        Same as fw_h_velocity_potential, but for the observer surface
+    fw_h_pressure
+        Pressure on the FW-H surface calculated over time. Each row
+        corresponds to a time step. Each column corresponds to the same
+        index on the surface.
+    observer_pressure
+        Same as fw_h_pressure, but for the observer surface
+    fw_h_velocity_x
+        x-component of velocity on the FW-H surface calculated over
+        time. Each row corresponds to a time step. Each column
+        corresponds to the same index on the surface.
+    fw_h_velocity_y
+        See fw_h_velocity_x
+    fw_h_velocity_z
+        See fw_h_velocity_x
     """
 
     def __init__(self,
@@ -59,187 +145,162 @@ class SourceData:
                                        config.source.time_domain.end_time,
                                        config.source.time_domain.n,
                                        dtype=np.float64)
-        self.source_type = config.source.description
         self.source_shape_function = parse_shape_function(config.source.shape)
 
         (
-            self.fw_h_surface_velocity_potential,
-            self.fw_h_surface_pressure,
-            self.fw_h_surface_velocity_x,
-            self.fw_h_surface_velocity_y,
-            self.fw_h_surface_velocity_z,
-        ) = self.generate_source_data(self.fw_h_surface)
+            self._velocity_potential_fn,
+            self._pressure_fn,
+            self._velocity_x_fn,
+            self._velocity_y_fn,
+            self._velocity_z_fn
+        ) = self.generate_source_functions()
 
-        # TODO: observer does not need velocity calculations
+        self.fw_h_velocity_potential = self.calculate_velocity_potential(True)
+        self.observer_velocity_potential = (
+            self.calculate_velocity_potential(False)
+        )
+
+        self.fw_h_pressure = self.calculate_pressure(True)
+        self.observer_pressure = self.calculate_pressure(False)
+
         (
-            self.observer_surface_velocity_potential,
-            self.observer_surface_pressure,
-            self.fw_h_surface_velocity_x,
-            self.fw_h_surface_velocity_y,
-            self.fw_h_surface_velocity_z,
-        ) = self.generate_source_data(self.observer_surface)
+            self.fw_h_velocity_x,
+            self.fw_h_velocity_y,
+            self.fw_h_velocity_z
+        ) = self.calculate_velocity()
 
-    def generate_source_data(self,
-                             surface: Surface) -> (
-            NDArray[NDArray[np.float64]],
-            NDArray[NDArray[np.float64]],
-            Tuple[
-                NDArray[NDArray[np.float64]],
-                NDArray[NDArray[np.float64]],
-                NDArray[NDArray[np.float64]]
-            ]
-    ):
-        """Generate source data over a surface.
+    def generate_source_functions(
+            self
+    ) -> Tuple[Callable, Callable, Callable, Callable, Callable]:
+        """Call the respective source generation function generator.
+
+        Based on whether the type of the analytical source, call a
+        function that will generate analytical, lambdified functions for
+        velocity potential, pressure, and velocity. These functions are
+        used to calculate the numerical values on the source surfaces.
+
+        Returns
+        -------
+        Callable
+            Velocity potential field function
+        Callable
+            Pressure field function
+        Callable
+            Velocity field (x-component) function
+        Callable
+            Velocity field (y-component) function
+        Callable
+            Velocity field (z-component) function
+        """
+        match self.config.source.description:
+            case SourceType.MONOPOLE:
+                functions = evaluate_monopole_source_functions(
+                    self.source_shape_function
+                )
+            case _:
+                raise ValueError("Unknown source type")
+        return functions
+
+    def calculate_velocity_potential(
+            self,
+            fw_h_surface: bool
+    ) -> NDArray[NDArray[np.float64]]:
+        """Calculate the velocity potential over a surface.
 
         Parameters
         ----------
-        surface
-            Points to calculate surface data for
+        fw_h_surface
+            Uses the FW-H surface if true, otherwise uses the observer
+            surface
 
         Returns
         -------
         NDArray[NDArray[np.float64]]
-            Matrix of velocity potentials. Each row corresponds to a
-            time step. Each column corresponds to the corresponding
-            coordinate in the surface object.
-        NDArray[NDArray[np.float64]]
-            Matrix of surface pressures. Each row corresponds to a
-            time step. Each column corresponds to the corresponding
-            coordinate in the surface object.
-        NDArray[NDArray[np.float64]]
-            Surface velocity in x-direction. Each row corresponds to a
-            time step. Each column corresponds to the corresponding
-            coordinate in the surface object.
-        NDArray[NDArray[np.float64]]
-            Surface velocity in y-direction. Each row corresponds to a
-            time step. Each column corresponds to the corresponding
-            coordinate in the surface object.
-        NDArray[NDArray[np.float64]]
-            Surface velocity in z-direction. Each row corresponds to a
-            time step. Each column corresponds to the corresponding
-            coordinate in the surface object.
+            Matrix of velocity potentials. Each row is a time step. Each
+            column corresponds to the respective point on the surface.
         """
-        phi = calculate_velocity_potential(
-            surface,
-            self.time_domain,
-            (
-                self.config.source.centroid.x,
-                self.config.source.centroid.y,
-                self.config.source.centroid.z
-            ),
-            self.source_type,
-            self.source_shape_function,
+        surface = self.fw_h_surface if fw_h_surface else self.observer_surface
+        return self._velocity_potential_fn(
+            surface.x[:, np.newaxis],
+            surface.y[:, np.newaxis],
+            surface.z[:, np.newaxis],
+            self.config.source.centroid.x,
+            self.config.source.centroid.y,
+            self.config.source.centroid.z,
+            self.time_domain[np.newaxis, :],
             self.config.source.amplitude,
             self.config.source.frequency,
             self.config.source.constants.c_0
-        )
-        p = calculate_pressure(
-            phi,
-            self.time_domain,
+        ).T
+
+    def calculate_pressure(
+            self,
+            fw_h_surface: bool
+    ) -> NDArray[NDArray[np.float64]]:
+        """Calculate the pressure over a surface.
+
+        Parameters
+        ----------
+        fw_h_surface
+            Uses the FW-H surface if true, otherwise uses the observer
+            surface
+
+        Returns
+        -------
+        NDArray[NDArray[np.float64]]
+            Matrix of surface pressure. Each row is a time step. Each
+            column corresponds to the respective point on the surface.
+        """
+        surface = self.fw_h_surface if fw_h_surface else self.observer_surface
+        return self._pressure_fn(
+            surface.x[:, np.newaxis],
+            surface.y[:, np.newaxis],
+            surface.z[:, np.newaxis],
+            self.config.source.centroid.x,
+            self.config.source.centroid.y,
+            self.config.source.centroid.z,
+            self.time_domain[np.newaxis, :],
+            self.config.source.amplitude,
+            self.config.source.frequency,
+            self.config.source.constants.c_0,
             self.config.source.constants.rho_0
-        )
-        V_x, V_y, V_z = calculate_velocity(phi, surface)
-        return phi, p, V_x, V_y, V_z
+        ).T
 
-
-def calculate_velocity_potential(surface: Surface,
-                                 time_domain: NDArray[np.float64],
-                                 source_location: Tuple[float, float, float],
-                                 source_type: SourceType,
-                                 source_shape_function: Callable[
-                                     [np.ndarray[np.float64]],
-                                     np.ndarray[np.float64]
-                                 ],
-                                 A: float,
-                                 omega: float,
-                                 c_0: float) -> NDArray[NDArray[np.float64]]:
-    """Calculate velocity potential over a surface.
-
-    Parameters
-    ----------
-    surface
-        Points to calculate the velocity potential over
-    time_domain
-        Time steps
-    source_location
-        Source location in cartesian coordinates
-    source_type
-        Type of analytical sound source
-    source_shape_function
-        Shape of the source pressure perturbations
-    A
-        Amplitude of the source pressure perturbations
-    omega
-        Frequency of source pressure perturbations
-    c_0
-        Speed of sound
-
-    Returns
-    -------
-    NDArray[NDArray[np.float64]]
-        Matrix of velocity potentials. Each row corresponds to a time
-        step. Each column corresponds to the corresponding coordinate in
-        the surface object.
-
-    Raises
-    ------
-    ValueError
-        If source_type is invalid
-    """
-    phi = np.empty(0)
-    match source_type:
-        case SourceType.MONOPOLE:
-            pass
-            r = (la.norm(np.stack((surface.x, surface.y, surface.z),
-                                  axis=1) - source_location,
-                         axis=1))
-            phi = (
-                    -A
-                    * source_shape_function(omega * time_domain[:, np.newaxis]
-                                            - r / c_0)
-                    / (4 * np.pi * r)
-            )
-        case SourceType.DIPOLE:
-            pass
-        case SourceType.QUADRUPOLE:
-            pass
-        case _:
-            raise ValueError(f"Invalid source type: {source_type}")
-    return phi
-
-
-def calculate_pressure(phi: NDArray[NDArray[np.float64]],
-                       time_domain: NDArray[np.float64],
-                       rho_0: float) -> NDArray[NDArray[np.float64]]:
-    """Calculate pressure over a surface.
-
-    Parameters
-    ----------
-    phi
-        Velocity potential over a surface. Each row corresponds to a
-        time step in time_domain. Each column corresponds to a point on
-        the surface.
-    time_domain
-        Time steps over which to calculate the pressure
-    rho_0
-        Ambient fluid density
-
-    Returns
-    -------
-    NDArray[NDArray[np.float64]]
-        Pressure at each point at each time step in time_domain
-    """
-    return rho_0 * np.gradient(phi, time_domain, axis=0)
-
-
-def calculate_velocity(phi: NDArray[NDArray[np.float64]],
-                       surface: Surface) -> (
+    def calculate_velocity(self) -> Tuple[
         NDArray[NDArray[np.float64]],
         NDArray[NDArray[np.float64]],
         NDArray[NDArray[np.float64]]
-):
-    # TODO: refactor so that spatial derivatives are done on each face
-    V_x = np.gradient(phi, surface.x, axis=1)
-    V_y = np.gradient(phi, surface.y, axis=1)
-    V_z = np.gradient(phi, surface.z, axis=1)
-    return V_x, V_y, V_z
+    ]:
+        """Calculate the velocity over the FW-H surface.
+
+        Returns
+        -------
+        NDArray[NDArray[np.float64]]
+            Matrix of surface velocity in the x direction. Each row is a
+            time step. Each column corresponds to the respective point
+            on the surface.
+        NDArray[NDArray[np.float64]]
+            Same as above but for velocity in the y direction
+        NDArray[NDArray[np.float64]]
+            Same as above but for velocity in the z direction
+        """
+
+        def calculate_velocity(fn: Callable) -> NDArray[NDArray[np.float64]]:
+            return fn(
+                self.fw_h_surface.x[:, np.newaxis],
+                self.fw_h_surface.y[:, np.newaxis],
+                self.fw_h_surface.z[:, np.newaxis],
+                self.config.source.centroid.x,
+                self.config.source.centroid.y,
+                self.config.source.centroid.z,
+                self.time_domain[np.newaxis, :],
+                self.config.source.amplitude,
+                self.config.source.frequency,
+                self.config.source.constants.c_0,
+            ).T
+
+        return (
+            calculate_velocity(self._velocity_x_fn),
+            calculate_velocity(self._velocity_y_fn),
+            calculate_velocity(self._velocity_z_fn),
+        )
