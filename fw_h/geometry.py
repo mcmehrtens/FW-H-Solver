@@ -1,6 +1,10 @@
 """Define general geometric structures."""
+import logging
+
 import numpy as np
 from numpy.typing import NDArray
+
+logger = logging.getLogger(__name__)
 
 
 class Surface:
@@ -73,7 +77,10 @@ def generate_fw_h_surface(r: float,
         Object representing the cuboid FW-H surface
     """
     # TODO: implement the ability to specify a centroid from the config
+    logger.info("Meshing FW-H surface...")
     delta = 2 * r / n
+    logger.debug("Mesh cell length: %f [L]", delta)
+    logger.debug("Number of points: %d", 6 * n ** 2)
 
     # sp ≔ positive s-face; sn ≔ negative s-face; *_n ≔ normal vector
     zp_x, zp_y, zp_z = np.meshgrid(
@@ -130,6 +137,7 @@ def generate_fw_h_surface(r: float,
     xn_n_y = np.full_like(xn_y, 0, dtype=np.float64)
     xn_n_z = np.full_like(xn_z, 0, dtype=np.float64)
 
+    logger.debug("Concatenating faces...")
     return Surface(
         np.concatenate((
             zp_x.ravel(), zn_x.ravel(),

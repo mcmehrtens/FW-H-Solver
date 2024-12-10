@@ -15,6 +15,14 @@ class SourceType(Enum):
     QUADRUPOLE = "quadrupole"
 
 
+class Solver(BaseModel):
+    logging_dir: str = Field(description="Logging directory")
+    log_file_timestamp: str = Field(description="Log file timestamp")
+    input_dir: str = Field(description="Input directory")
+    output_dir: str = Field(description="Output directory")
+    output_file_timestamp: str = Field(description="Output file timestamp")
+
+
 class Centroid(BaseModel):
     x: float = Field(description="X-coordinate value [L]")
     y: float = Field(description="Y-coordinate value [L]")
@@ -58,6 +66,7 @@ class Observer(BaseModel):
 
 
 class ConfigSchema(BaseModel):
+    solver: Solver
     source: Source
     fw_h_surface: FW_H_Surface
     observer: Observer

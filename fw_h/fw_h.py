@@ -1,8 +1,15 @@
 """Entrypoint to the FW-H solver."""
 import argparse
+import logging
+from datetime import datetime
+from pathlib import Path
+
+import yaml
 
 from fw_h.config import Config
 from fw_h.source import SourceData
+
+logger = None
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -23,16 +30,95 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument("config",
                         help="relative path to the config file")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="increase logging verbosity")
+    parser.add_argument("-s", "--source", action="store_true",
+                        help="generate source data")
+    parser.add_argument("-S", "--write-source",
+                        action="store_true",
+                        help="write source data to file")
 
     return parser.parse_args()
 
 
+def configure_logging(verbose: bool,
+                      logging_dir: str,
+                      log_file_timestamp: str,
+                      timestamp: datetime) -> logging.Logger:
+    """Configure the logging module.
+
+    Parameters
+    ----------
+    verbose
+        If true, sets the logging level to DEBUG, otherwise, the logging
+        level will be set to INFO
+    logging_dir
+        Directory where logs should be written
+    log_file_timestamp
+        Timestamp format for logging files
+    timestamp
+        Approximate time at which the program started
+
+    Returns
+    -------
+    Logger
+        This modules logger
+    """
+    verbosity = logging.DEBUG if verbose else logging.INFO
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(verbosity)
+
+    start_time = timestamp.strftime(log_file_timestamp)
+    file_handler = logging.FileHandler(
+        Path(logging_dir) / f"{start_time}-fw-h.log"
+    )
+    file_handler.setLevel(verbosity)
+
+    formatter = logging.Formatter("%(asctime)s "
+                                  "- %(name)s "
+                                  "- %(levelname)s "
+                                  "- %(message)s")
+    formatter.default_msec_format = "%s.%03d"
+
+    console_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(verbosity)
+    root_logger.addHandler(console_handler)
+    root_logger.addHandler(file_handler)
+
+    return logging.getLogger(__name__)
+
+
 def main():
     """Start the FW-H solver."""
+    global logger
+    program_start = datetime.now()
     args = parse_arguments()
+
     config = Config(args.config).get()
 
-    source = SourceData(config)
+    logger = configure_logging(args.verbose,
+                               config.solver.logging_dir,
+                               config.solver.log_file_timestamp,
+                               program_start)
+
+    logger.info("Starting FW-H solver...")
+    logger.debug("Configuration file:\n%s",
+                 yaml.dump(config.model_dump(warnings="error"),
+                           default_flow_style=False)
+                 )
+
+    if args.source or args.write_source:
+        logger.info("Beginning source generation routine...")
+        source = SourceData(config)
+        if args.write_source:
+            logger.info("Beginning source writing routine...")
+            source.write_data()
+
+    logger.info("Exiting script...")
 
 
 if __name__ == "__main__":
