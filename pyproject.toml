@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A solver for the Ffowcs Williams and Hawkings (FW-H) equation written in Python using Farassat's Formulation 1A."
 license = "MIT"
 authors = [
-	"Matthew Mehrtens <12023414+mcmehrtens@users.noreply.github.com>",
+    "Matthew Mehrtens <12023414+mcmehrtens@users.noreply.github.com>",
 ]
 readme = "README.md"
 repository = "https://github.com/mcmehrtens/FW-H-Solver"
