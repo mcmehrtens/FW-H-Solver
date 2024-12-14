@@ -30,23 +30,23 @@ class Output(BaseModel):
     output_file_timestamp: str = Field(description="Output file timestamp")
 
 
+class Constants(BaseModel):
+    c_0: float = Field(description="Speed of sound [L * T^-1]")
+    rho_0: float = Field(description="Density of fluid [M * L^-3]")
+
+
 class Solver(BaseModel):
     logging: Logging
     input: Input
     output: Output
+    constants: Constants
+    time_steps: int = Field(description="Number of observer time steps")
 
 
 class Centroid(BaseModel):
     x: float = Field(description="X-coordinate value [L]")
     y: float = Field(description="Y-coordinate value [L]")
     z: float = Field(description="Z-coordinate value [L]")
-
-
-class Constants(BaseModel):
-    c_0: float = Field(description="Speed of sound [L * T^-1]")
-    rho_0: float = Field(description="Density of fluid [M * L^-3]")
-    p_0: float = Field(description="Ambient pressure [F * L^-2]")
-    T_0: float = Field(description="Ambient temperature [Θ]")
 
 
 class TimeDomain(BaseModel):

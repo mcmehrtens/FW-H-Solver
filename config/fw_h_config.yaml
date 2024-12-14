@@ -4,10 +4,14 @@ solver:
     logging_dir: /Users/mcmehrtens/src/fw-h-solver/log
     log_file_timestamp: "%Y%m%d-%H.%M.%S"
   input:
-    input_file: /Users/mcmehrtens/src/fw-h-solver/input/20241210-03.02.41-fw-h.npz
+    input_file: /Users/mcmehrtens/src/fw-h-solver/input/20241211-12.46.09-fw-h.npz
   output:
     output_dir: /Users/mcmehrtens/src/fw-h-solver/output
     output_file_timestamp: "%Y%m%d-%H.%M.%S"
+  constants:
+    c_0: 340.2
+    rho_0: 1.225
+  time_steps: 2500
 source:
   centroid:
     x: 0  # [L]
@@ -16,23 +20,21 @@ source:
   description: monopole
   shape: sin
   amplitude: 5e4
-  frequency: 750  # [T^-1]
+  frequency: 300  # [T^-1]
   constants:
     c_0: 340.2    # [L * T^-1]
     rho_0: 1.225  # [M * L^-3]
-    p_0: 10.13e4  # [F * L^-2]
-    T_0: 15       # [Θ]
   time_domain:
     start_time: 0  # [T]
-    end_time: 0.75  # [T]
-    n: 5000
+    end_time: 0.5  # [T]
+    n: 2500
 fw_h_surface:
   centroid:
     x: 0  # [L]
     y: 0  # [L]
     z: 0  # [L]
   r: 7.5  # [L]
-  n: 100
+  n: 50
 observer:
   centroid:
     x: 40.1  # [L]

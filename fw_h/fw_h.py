@@ -5,12 +5,14 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import yaml
 
 from fw_h.config import (
     Config,
     ConfigSchema,
 )
+from fw_h.solver import Solver
 from fw_h.source import SourceData
 
 
@@ -110,10 +112,12 @@ def source_routine(logger: logging.Logger,
     """
     logger.info("Beginning source generation routine...")
     source = SourceData(config)
+    source.mesh()
+    source.compute_source_functions()
     source.compute()
     if write:
         logger.info("Beginning source writing routine...")
-        source.write_data()
+        source.write()
 
 
 def solver_routine(logger: logging.Logger,
@@ -128,7 +132,17 @@ def solver_routine(logger: logging.Logger,
         Configuration object parsed from the YAML configuration file
     """
     logger.info("Beginning solver routine...")
-    pass
+    source = SourceData(config)
+    source.load()
+    solver = Solver(config, source)
+    solver.compute()
+
+    logger.info("Writing solution...")
+    np.savez_compressed(Path(config.solver.output.output_dir) / "solution.npz",
+                        source_time=solver.source.time_domain,
+                        analytical_observer_pressure=solver.source.observer_pressure,
+                        observer_time=solver.time_domain,
+                        observer_pressure=solver.p)
 
 
 def main():
