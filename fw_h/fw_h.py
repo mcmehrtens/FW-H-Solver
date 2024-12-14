@@ -1,4 +1,5 @@
 """Entrypoint to the FW-H solver."""
+
 import argparse
 import json
 import logging
@@ -32,23 +33,32 @@ def parse_arguments() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    parser.add_argument("config",
-                        help="relative path to the config file")
-    parser.add_argument("-v", "--verbose", action="store_true",
-                        help="increase logging verbosity")
-    parser.add_argument("-s", "--source", action="store_true",
-                        help="generate source data")
-    parser.add_argument("-S", "--write-source",
-                        action="store_true",
-                        help="write source data to file")
+    parser.add_argument("config", help="relative path to the config file")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="increase logging verbosity",
+    )
+    parser.add_argument(
+        "-s", "--source", action="store_true", help="generate source data"
+    )
+    parser.add_argument(
+        "-S",
+        "--write-source",
+        action="store_true",
+        help="write source data to file",
+    )
 
     return parser.parse_args()
 
 
-def configure_logging(verbose: bool,
-                      logging_dir: str,
-                      log_file_timestamp: str,
-                      timestamp: datetime) -> logging.Logger:
+def configure_logging(
+    verbose: bool,
+    logging_dir: str,
+    log_file_timestamp: str,
+    timestamp: datetime,
+) -> logging.Logger:
     """Configure the logging module.
 
     Parameters
@@ -79,10 +89,9 @@ def configure_logging(verbose: bool,
     )
     file_handler.setLevel(verbosity)
 
-    formatter = logging.Formatter("%(asctime)s "
-                                  "- %(name)s "
-                                  "- %(levelname)s "
-                                  "- %(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s " "- %(name)s " "- %(levelname)s " "- %(message)s"
+    )
     formatter.default_msec_format = "%s.%03d"
 
     console_handler.setFormatter(formatter)
@@ -96,9 +105,7 @@ def configure_logging(verbose: bool,
     return logging.getLogger(__name__)
 
 
-def source_routine(logger: logging.Logger,
-                   config: ConfigSchema,
-                   write: bool):
+def source_routine(logger: logging.Logger, config: ConfigSchema, write: bool):
     """Generate and optionally write the source data to a file.
 
     Parameters
@@ -120,8 +127,7 @@ def source_routine(logger: logging.Logger,
         source.write()
 
 
-def solver_routine(logger: logging.Logger,
-                   config: ConfigSchema):
+def solver_routine(logger: logging.Logger, config: ConfigSchema):
     """Solve for observer pressure given the input data.
 
     Parameters
@@ -138,11 +144,13 @@ def solver_routine(logger: logging.Logger,
     solver.compute()
 
     logger.info("Writing solution...")
-    np.savez_compressed(Path(config.solver.output.output_dir) / "solution.npz",
-                        source_time=solver.source.time_domain,
-                        analytical_observer_pressure=solver.source.observer_pressure,
-                        observer_time=solver.time_domain,
-                        observer_pressure=solver.p)
+    np.savez_compressed(
+        Path(config.solver.output.output_dir) / "solution.npz",
+        source_time=solver.source.time_domain,
+        analytical_observer_pressure=solver.source.observer_pressure,
+        observer_time=solver.time_domain,
+        observer_pressure=solver.p,
+    )
 
 
 def main():
@@ -152,18 +160,23 @@ def main():
 
     config = Config(args.config).get()
 
-    logger = configure_logging(args.verbose,
-                               config.solver.logging.logging_dir,
-                               config.solver.logging.log_file_timestamp,
-                               program_start)
+    logger = configure_logging(
+        args.verbose,
+        config.solver.logging.logging_dir,
+        config.solver.logging.log_file_timestamp,
+        program_start,
+    )
 
     logger.info("Starting FW-H solver...")
-    logger.debug("Command-Line Arguments:\n%s",
-                 json.dumps(vars(args), indent=4))
-    logger.debug("Configuration file:\n%s",
-                 yaml.dump(config.model_dump(warnings="error"),
-                           default_flow_style=False)
-                 )
+    logger.debug(
+        "Command-Line Arguments:\n%s", json.dumps(vars(args), indent=4)
+    )
+    logger.debug(
+        "Configuration file:\n%s",
+        yaml.dump(
+            config.model_dump(warnings="error"), default_flow_style=False
+        ),
+    )
 
     if args.source or args.write_source:
         source_routine(logger, config, args.write_source)

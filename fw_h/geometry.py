@@ -1,4 +1,5 @@
 """Define general geometric structures."""
+
 import logging
 
 import numpy as np
@@ -42,13 +43,15 @@ class Surface:
     vectors defined since they server no purpose for FW-H analysis.
     """
 
-    def __init__(self,
-                 x: NDArray[np.float64],
-                 y: NDArray[np.float64],
-                 z: NDArray[np.float64],
-                 n_x: NDArray[np.float64] = None,
-                 n_y: NDArray[np.float64] = None,
-                 n_z: NDArray[np.float64] = None):
+    def __init__(
+        self,
+        x: NDArray[np.float64],
+        y: NDArray[np.float64],
+        z: NDArray[np.float64],
+        n_x: NDArray[np.float64] = None,
+        n_y: NDArray[np.float64] = None,
+        n_z: NDArray[np.float64] = None,
+    ):
         self.x = x
         self.y = y
         self.z = z
@@ -57,8 +60,7 @@ class Surface:
         self.n_z = n_z
 
 
-def generate_fw_h_surface(r: float,
-                          n: int) -> Surface:
+def generate_fw_h_surface(r: float, n: int) -> Surface:
     """Generate the FW-H surface as a hollow cube.
 
     Assumes center of the surface is at (0, 0, 0). Faces of the cube
@@ -80,13 +82,13 @@ def generate_fw_h_surface(r: float,
     logger.info("Meshing FW-H surface...")
     delta = 2 * r / n
     logger.debug("Mesh cell length: %f [L]", delta)
-    logger.debug("Number of points: %d", 6 * n ** 2)
+    logger.debug("Number of points: %d", 6 * n**2)
 
     # sp ≔ positive s-face; sn ≔ negative s-face; *_n ≔ normal vector
     zp_x, zp_y, zp_z = np.meshgrid(
         np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64),
         np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64),
-        np.float64(r)
+        np.float64(r),
     )
     zp_n_x = np.full_like(zp_x, 0, dtype=np.float64)
     zp_n_y = np.full_like(zp_y, 0, dtype=np.float64)
@@ -95,7 +97,7 @@ def generate_fw_h_surface(r: float,
     zn_x, zn_y, zn_z = np.meshgrid(
         np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64),
         np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64),
-        np.float64(-r)
+        np.float64(-r),
     )
     zn_n_x = np.full_like(zn_x, 0, dtype=np.float64)
     zn_n_y = np.full_like(zn_y, 0, dtype=np.float64)
@@ -104,7 +106,7 @@ def generate_fw_h_surface(r: float,
     yp_x, yp_y, yp_z = np.meshgrid(
         np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64),
         np.float64(r),
-        np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64)
+        np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64),
     )
     yp_n_x = np.full_like(yp_x, 0, dtype=np.float64)
     yp_n_y = np.full_like(yp_y, 1, dtype=np.float64)
@@ -113,7 +115,7 @@ def generate_fw_h_surface(r: float,
     yn_x, yn_y, yn_z = np.meshgrid(
         np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64),
         np.float64(-r),
-        np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64)
+        np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64),
     )
     yn_n_x = np.full_like(yn_x, 0, dtype=np.float64)
     yn_n_y = np.full_like(yn_y, -1, dtype=np.float64)
@@ -122,7 +124,7 @@ def generate_fw_h_surface(r: float,
     xp_x, xp_y, xp_z = np.meshgrid(
         np.float64(r),
         np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64),
-        np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64)
+        np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64),
     )
     xp_n_x = np.full_like(xp_x, 1, dtype=np.float64)
     xp_n_y = np.full_like(xp_y, 0, dtype=np.float64)
@@ -131,7 +133,7 @@ def generate_fw_h_surface(r: float,
     xn_x, xn_y, xn_z = np.meshgrid(
         np.float64(-r),
         np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64),
-        np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64)
+        np.linspace(-r + delta / 2, r - delta / 2, n, dtype=np.float64),
     )
     xn_n_x = np.full_like(xn_x, -1, dtype=np.float64)
     xn_n_y = np.full_like(xn_y, 0, dtype=np.float64)
@@ -139,34 +141,64 @@ def generate_fw_h_surface(r: float,
 
     logger.debug("Concatenating faces...")
     return Surface(
-        np.concatenate((
-            zp_x.ravel(), zn_x.ravel(),
-            yp_x.ravel(), yn_x.ravel(),
-            xp_x.ravel(), xn_x.ravel()
-        )),
-        np.concatenate((
-            zp_y.ravel(), zn_y.ravel(),
-            yp_y.ravel(), yn_y.ravel(),
-            xp_y.ravel(), xn_y.ravel()
-        )),
-        np.concatenate((
-            zp_z.ravel(), zn_z.ravel(),
-            yp_z.ravel(), yn_z.ravel(),
-            xp_z.ravel(), xn_z.ravel()
-        )),
-        np.concatenate((
-            zp_n_x.ravel(), zn_n_x.ravel(),
-            yp_n_x.ravel(), yn_n_x.ravel(),
-            xp_n_x.ravel(), xn_n_x.ravel()
-        )),
-        np.concatenate((
-            zp_n_y.ravel(), zn_n_y.ravel(),
-            yp_n_y.ravel(), yn_n_y.ravel(),
-            xp_n_y.ravel(), xn_n_y.ravel()
-        )),
-        np.concatenate((
-            zp_n_z.ravel(), zn_n_z.ravel(),
-            yp_n_z.ravel(), yn_n_z.ravel(),
-            xp_n_z.ravel(), xn_n_z.ravel()
-        ))
+        np.concatenate(
+            (
+                zp_x.ravel(),
+                zn_x.ravel(),
+                yp_x.ravel(),
+                yn_x.ravel(),
+                xp_x.ravel(),
+                xn_x.ravel(),
+            )
+        ),
+        np.concatenate(
+            (
+                zp_y.ravel(),
+                zn_y.ravel(),
+                yp_y.ravel(),
+                yn_y.ravel(),
+                xp_y.ravel(),
+                xn_y.ravel(),
+            )
+        ),
+        np.concatenate(
+            (
+                zp_z.ravel(),
+                zn_z.ravel(),
+                yp_z.ravel(),
+                yn_z.ravel(),
+                xp_z.ravel(),
+                xn_z.ravel(),
+            )
+        ),
+        np.concatenate(
+            (
+                zp_n_x.ravel(),
+                zn_n_x.ravel(),
+                yp_n_x.ravel(),
+                yn_n_x.ravel(),
+                xp_n_x.ravel(),
+                xn_n_x.ravel(),
+            )
+        ),
+        np.concatenate(
+            (
+                zp_n_y.ravel(),
+                zn_n_y.ravel(),
+                yp_n_y.ravel(),
+                yn_n_y.ravel(),
+                xp_n_y.ravel(),
+                xn_n_y.ravel(),
+            )
+        ),
+        np.concatenate(
+            (
+                zp_n_z.ravel(),
+                zn_n_z.ravel(),
+                yp_n_z.ravel(),
+                yn_n_z.ravel(),
+                xp_n_z.ravel(),
+                xn_n_z.ravel(),
+            )
+        ),
     )

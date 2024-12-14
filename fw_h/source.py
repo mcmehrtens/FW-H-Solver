@@ -1,4 +1,5 @@
 """Generate the data resulting from a theoretical source."""
+
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 def evaluate_monopole_source_functions(
-        source_shape_fn: sp.FunctionClass
+    source_shape_fn: sp.FunctionClass,
 ) -> Tuple[Callable, Callable, Callable, Callable, Callable]:
     """Symbolically evaluate monopole source functions.
 
@@ -60,51 +61,51 @@ def evaluate_monopole_source_functions(
 
     r = sp.sqrt((x - x_0) ** 2 + (y - y_0) ** 2 + (z - z_0) ** 2)
     phi = -A * source_shape_fn(omega * (t - r / c_0)) / (4 * sp.pi * r)
-    logger.debug("phi:\n%s\n%s",
-                 sp.latex(phi),
-                 sp.pretty(phi, use_unicode=True, wrap_line=False))
+    logger.debug(
+        "phi:\n%s\n%s",
+        sp.latex(phi),
+        sp.pretty(phi, use_unicode=True, wrap_line=False),
+    )
     p = -rho_0 * sp.diff(phi, t)
-    logger.debug("p:\n%s\n%s",
-                 sp.latex(p),
-                 sp.pretty(p, use_unicode=True, wrap_line=False))
+    logger.debug(
+        "p:\n%s\n%s",
+        sp.latex(p),
+        sp.pretty(p, use_unicode=True, wrap_line=False),
+    )
     V_x = sp.diff(phi, x)
-    logger.debug("V_x:\n%s\n%s",
-                 sp.latex(V_x),
-                 sp.pretty(V_x, use_unicode=True, wrap_line=False))
+    logger.debug(
+        "V_x:\n%s\n%s",
+        sp.latex(V_x),
+        sp.pretty(V_x, use_unicode=True, wrap_line=False),
+    )
     V_y = sp.diff(phi, y)
-    logger.debug("V_y:\n%s\n%s",
-                 sp.latex(V_y),
-                 sp.pretty(V_y, use_unicode=True, wrap_line=False))
+    logger.debug(
+        "V_y:\n%s\n%s",
+        sp.latex(V_y),
+        sp.pretty(V_y, use_unicode=True, wrap_line=False),
+    )
     V_z = sp.diff(phi, z)
-    logger.debug("V_z:\n%s\n%s",
-                 sp.latex(V_z),
-                 sp.pretty(V_z, use_unicode=True, wrap_line=False))
+    logger.debug(
+        "V_z:\n%s\n%s",
+        sp.latex(V_z),
+        sp.pretty(V_z, use_unicode=True, wrap_line=False),
+    )
 
     logger.info("Lambdifying symbolic functions...")
     phi_fn = lambdify(
-        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0),
-        phi,
-        modules="numpy"
+        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0), phi, modules="numpy"
     )
     p_fn = lambdify(
-        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0, rho_0),
-        p,
-        modules="numpy"
+        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0, rho_0), p, modules="numpy"
     )
     V_x_fn = lambdify(
-        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0),
-        V_x,
-        modules="numpy"
+        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0), V_x, modules="numpy"
     )
     V_y_fn = lambdify(
-        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0),
-        V_y,
-        modules="numpy"
+        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0), V_y, modules="numpy"
     )
     V_z_fn = lambdify(
-        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0),
-        V_z,
-        modules="numpy"
+        (x, y, z, x_0, y_0, z_0, t, A, omega, c_0), V_z, modules="numpy"
     )
     return phi_fn, p_fn, V_x_fn, V_y_fn, V_z_fn
 
@@ -153,8 +154,7 @@ class SourceData:
         See fw_h_velocity_x
     """
 
-    def __init__(self,
-                 config: ConfigSchema):
+    def __init__(self, config: ConfigSchema):
         logger.info("Initializing SourceData object...")
         self.config = config
 
@@ -177,19 +177,15 @@ class SourceData:
 
     def mesh(self):
         """Mesh the surfaces and discretize the time domain."""
-        self.fw_h_surface = generate_fw_h_surface(self.config.fw_h_surface.r,
-                                                  self.config.fw_h_surface.n)
+        self.fw_h_surface = generate_fw_h_surface(
+            self.config.fw_h_surface.r, self.config.fw_h_surface.n
+        )
 
         logger.info("Meshing observer surface...")
-        self.observer_surface = (
-            Surface(
-                np.array([self.config.observer.centroid.x],
-                         dtype=np.float64),
-                np.array([self.config.observer.centroid.y],
-                         dtype=np.float64),
-                np.array([self.config.observer.centroid.z],
-                         dtype=np.float64)
-            )
+        self.observer_surface = Surface(
+            np.array([self.config.observer.centroid.x], dtype=np.float64),
+            np.array([self.config.observer.centroid.y], dtype=np.float64),
+            np.array([self.config.observer.centroid.z], dtype=np.float64),
         )
 
         logger.info("Discretizing source time domain")
@@ -197,11 +193,11 @@ class SourceData:
             self.config.source.time_domain.start_time,
             self.config.source.time_domain.end_time,
             self.config.source.time_domain.n,
-            dtype=np.float64
+            dtype=np.float64,
         )
 
     def _generate_source_functions(
-            self
+        self,
     ) -> Tuple[Callable, Callable, Callable, Callable, Callable]:
         """Call the respective source generation function generator.
 
@@ -246,7 +242,7 @@ class SourceData:
             self._pressure_fn,
             self._velocity_x_fn,
             self._velocity_y_fn,
-            self._velocity_z_fn
+            self._velocity_z_fn,
         ) = self._generate_source_functions()
 
     def compute(self):
@@ -259,20 +255,24 @@ class SourceData:
             called prior to running compute()
         """
         logger.info("Beginning source computation...")
-        if (self.fw_h_surface is None
-                or self.observer_surface is None
-                or len(self.time_domain) == 0):
+        if (
+            self.fw_h_surface is None
+            or self.observer_surface is None
+            or len(self.time_domain) == 0
+        ):
             raise RuntimeError(
                 "Surfaces and time_domain must be discretized before source "
                 "data can be computed. Ensure mesh() has been called before "
                 "compute()."
             )
-        if (self.source_shape_function is None
-                or self._velocity_potential_fn is None
-                or self._pressure_fn is None
-                or self._velocity_x_fn is None
-                or self._velocity_y_fn is None
-                or self._velocity_z_fn is None):
+        if (
+            self.source_shape_function is None
+            or self._velocity_potential_fn is None
+            or self._pressure_fn is None
+            or self._velocity_x_fn is None
+            or self._velocity_y_fn is None
+            or self._velocity_z_fn is None
+        ):
             raise RuntimeError(
                 "Source functions must be evaluated before source data can be "
                 "computed. Ensure compute_source_functions() has been called "
@@ -280,22 +280,19 @@ class SourceData:
             )
 
         self.fw_h_velocity_potential = self.calculate_velocity_potential(True)
-        self.observer_velocity_potential = (
-            self.calculate_velocity_potential(False)
+        self.observer_velocity_potential = self.calculate_velocity_potential(
+            False
         )
 
         self.fw_h_pressure = self.calculate_pressure(True)
         self.observer_pressure = self.calculate_pressure(False)
 
-        (
-            self.fw_h_velocity_x,
-            self.fw_h_velocity_y,
-            self.fw_h_velocity_z
-        ) = self.calculate_velocity()
+        (self.fw_h_velocity_x, self.fw_h_velocity_y, self.fw_h_velocity_z) = (
+            self.calculate_velocity()
+        )
 
     def calculate_velocity_potential(
-            self,
-            fw_h_surface: bool
+        self, fw_h_surface: bool
     ) -> NDArray[NDArray[np.float64]]:
         """Calculate the velocity potential over a surface.
 
@@ -311,8 +308,10 @@ class SourceData:
             Matrix of velocity potentials. Each row is a time step. Each
             column corresponds to the respective point on the surface.
         """
-        logger.info("Calculating velocity potential over %s surface...",
-                    "FW-H" if fw_h_surface else "observer")
+        logger.info(
+            "Calculating velocity potential over %s surface...",
+            "FW-H" if fw_h_surface else "observer",
+        )
         surface = self.fw_h_surface if fw_h_surface else self.observer_surface
         return self._velocity_potential_fn(
             surface.x[:, np.newaxis],
@@ -324,12 +323,11 @@ class SourceData:
             self.time_domain[np.newaxis, :],
             self.config.source.amplitude,
             self.config.source.frequency,
-            self.config.source.constants.c_0
+            self.config.source.constants.c_0,
         ).T
 
     def calculate_pressure(
-            self,
-            fw_h_surface: bool
+        self, fw_h_surface: bool
     ) -> NDArray[NDArray[np.float64]]:
         """Calculate the pressure over a surface.
 
@@ -345,8 +343,10 @@ class SourceData:
             Matrix of surface pressure. Each row is a time step. Each
             column corresponds to the respective point on the surface.
         """
-        logger.info("Calculating pressure over %s surface...",
-                    "FW-H" if fw_h_surface else "observer")
+        logger.info(
+            "Calculating pressure over %s surface...",
+            "FW-H" if fw_h_surface else "observer",
+        )
         surface = self.fw_h_surface if fw_h_surface else self.observer_surface
         return self._pressure_fn(
             surface.x[:, np.newaxis],
@@ -359,13 +359,15 @@ class SourceData:
             self.config.source.amplitude,
             self.config.source.frequency,
             self.config.source.constants.c_0,
-            self.config.source.constants.rho_0
+            self.config.source.constants.rho_0,
         ).T
 
-    def calculate_velocity(self) -> Tuple[
+    def calculate_velocity(
+        self,
+    ) -> Tuple[
         NDArray[NDArray[np.float64]],
         NDArray[NDArray[np.float64]],
-        NDArray[NDArray[np.float64]]
+        NDArray[NDArray[np.float64]],
     ]:
         """Calculate the velocity over the FW-H surface.
 
@@ -414,30 +416,34 @@ class SourceData:
         config_path = Path(output_dir) / f"{timestamp}-fw-h-config.yaml"
         with open(config_path, "w") as file:
             logger.info("Writing config to %s...", config_path)
-            yaml.dump(self.config.model_dump(warnings="error"),
-                      file,
-                      default_flow_style=False)
+            yaml.dump(
+                self.config.model_dump(warnings="error"),
+                file,
+                default_flow_style=False,
+            )
 
         data_path = Path(output_dir) / f"{timestamp}-fw-h.npz"
         logger.info("Writing data to %s...", data_path)
         logger.info("This may take a while...")
 
-        np.savez_compressed(data_path,
-                            fw_h_surface_x=self.fw_h_surface.x,
-                            fw_h_surface_y=self.fw_h_surface.y,
-                            fw_h_surface_z=self.fw_h_surface.z,
-                            fw_h_surface_n_x=self.fw_h_surface.n_x,
-                            fw_h_surface_n_y=self.fw_h_surface.n_y,
-                            fw_h_surface_n_z=self.fw_h_surface.n_z,
-                            observer_surface_x=self.observer_surface.x,
-                            observer_surface_y=self.observer_surface.y,
-                            observer_surface_z=self.observer_surface.z,
-                            time_domain=self.time_domain,
-                            fw_h_pressure=self.fw_h_pressure,
-                            observer_pressure=self.observer_pressure,
-                            fw_h_velocity_x=self.fw_h_velocity_x,
-                            fw_h_velocity_y=self.fw_h_velocity_y,
-                            fw_h_velocity_z=self.fw_h_velocity_z)
+        np.savez_compressed(
+            data_path,
+            fw_h_surface_x=self.fw_h_surface.x,
+            fw_h_surface_y=self.fw_h_surface.y,
+            fw_h_surface_z=self.fw_h_surface.z,
+            fw_h_surface_n_x=self.fw_h_surface.n_x,
+            fw_h_surface_n_y=self.fw_h_surface.n_y,
+            fw_h_surface_n_z=self.fw_h_surface.n_z,
+            observer_surface_x=self.observer_surface.x,
+            observer_surface_y=self.observer_surface.y,
+            observer_surface_z=self.observer_surface.z,
+            time_domain=self.time_domain,
+            fw_h_pressure=self.fw_h_pressure,
+            observer_pressure=self.observer_pressure,
+            fw_h_velocity_x=self.fw_h_velocity_x,
+            fw_h_velocity_y=self.fw_h_velocity_y,
+            fw_h_velocity_z=self.fw_h_velocity_z,
+        )
 
     def load(self):
         input_path = Path(self.config.solver.input.input_file)

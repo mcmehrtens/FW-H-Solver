@@ -1,4 +1,5 @@
 """Import the FW-H configuration."""
+
 from enum import Enum
 
 import sympy as sp
@@ -11,6 +12,7 @@ from pydantic import (
 
 class SourceType(Enum):
     """Types of supported theoretical acoustic sources."""
+
     MONOPOLE = "monopole"
     DIPOLE = "dipole"
     QUADRUPOLE = "quadrupole"
@@ -68,10 +70,13 @@ class Source(BaseModel):
 # noinspection PyPep8Naming
 class FW_H_Surface(BaseModel):
     centroid: Centroid
-    r: float = Field(description="Perpendicular distance from centroid to "
-                                 "each face of the FW-H surface")
-    n: int = Field(description="Number of points on each edge of the FW-H "
-                               "surface.")
+    r: float = Field(
+        description="Perpendicular distance from centroid to "
+        "each face of the FW-H surface"
+    )
+    n: int = Field(
+        description="Number of points on each edge of the FW-H " "surface."
+    )
 
 
 class Observer(BaseModel):
