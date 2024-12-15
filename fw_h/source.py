@@ -4,8 +4,8 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import (
-    Tuple,
     Callable,
+    Tuple,
 )
 
 import numpy as np
@@ -16,8 +16,8 @@ from sympy.utilities.lambdify import lambdify
 
 from fw_h.config import (
     ConfigSchema,
-    parse_shape_function,
     SourceType,
+    parse_shape_function,
 )
 from fw_h.geometry import (
     Surface,
