@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Normals:
-    """List of 3-D normal vectors corresponding to a surface.
+    """List of 3D normal vectors corresponding to a surface.
 
     [n_x[i], n_y[i], n_z[i]] is a single normal vector.
 
@@ -29,9 +29,9 @@ class Normals:
 
 @dataclass
 class Surface:
-    """A 3-D surface.
+    """A 3D surface.
 
-    (x[i], y[i], z[i]) is a 3-D cartesian coordinate corresponding to a
+    (x[i], y[i], z[i]) is a 3D cartesian coordinate corresponding to a
     point on the surface. If defined, [x[i], y[i], z[i]] is the normal
     vector corresponding to that point.
 

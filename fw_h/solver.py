@@ -119,9 +119,11 @@ class Solver:
         self._compute_cos_theta()
 
         logger.info("Computing pressure from Formulation 1A in source time...")
-        cell_area = (
-            2 * self.config.fw_h_surface.r / self.config.fw_h_surface.n
-        ) ** 2
+        fw_h_surface_r = np.max(self.source.fw_h_surface.x) - np.min(
+            self.source.fw_h_surface.x
+        )
+        fw_h_surface_n = np.sqrt(len(self.source.fw_h_surface.x) / 6)
+        cell_area = (2 * fw_h_surface_r / fw_h_surface_n) ** 2
         p_t_tau = (
             cell_area
             / (4 * np.pi)

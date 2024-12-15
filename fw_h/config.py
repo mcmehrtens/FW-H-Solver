@@ -22,94 +22,114 @@ class SourceType(Enum):
 class Logging(BaseModel):
     """Logging configuration."""
 
-    logging_dir: str = Field(description="Logging directory")
-    log_file_timestamp: str = Field(description="Log file timestamp")
-
-
-class Input(BaseModel):
-    """Input configuration."""
-
-    input_file: str = Field(description="Path to input file")
+    logging_dir: str = Field(description="The directory to store logs in.")
+    log_file_timestamp: str = Field(
+        description="The format of the timestamps prepended to log files. "
+        "Timestamps are created using datetime.datetime.strftime()."
+    )
 
 
 class Output(BaseModel):
     """Output configuration."""
 
-    output_dir: str = Field(description="Output directory")
-    output_file_timestamp: str = Field(description="Output file timestamp")
+    output_dir: str = Field(
+        description="The directory to store output files in."
+    )
+    output_file_timestamp: str = Field(
+        description="The format of the timestamp prepended to output files. "
+        "Timestamps are created using datetime.datetime.strftime()."
+    )
+
+
+class GlobalConfig(BaseModel):
+    """Global configuration settings.
+
+    These settings apply to the source generation and solving routines.
+
+    """
+
+    logging: Logging
+    output: Output
+
+
+class Input(BaseModel):
+    """Input configuration."""
+
+    data_file_path: str = Field(description="The path to the input data file.")
 
 
 class Constants(BaseModel):
-    """Constants configuration."""
+    """Physical constants."""
 
-    c_0: float = Field(description="Speed of sound [L * T^-1]")
-    rho_0: float = Field(description="Density of fluid [M * L^-3]")
+    c_0: float = Field(
+        description="The speed of sound in the fluid [L * T^-1]."
+    )
+    rho_0: float = Field(description="The density of the fluid [M * L^-3].")
 
 
 class Solver(BaseModel):
-    """Solver configuration."""
+    """Configuration settings used by the solving routine."""
 
-    logging: Logging
     input: Input
-    output: Output
     constants: Constants
-    time_steps: int = Field(description="Number of observer time steps")
+    time_steps: int = Field(description="The number of observer time steps.")
 
 
-class Centroid(BaseModel):
-    """Centroid configuration."""
+class Point(BaseModel):
+    """Defines a point in 3D space."""
 
-    x: float = Field(description="X-coordinate value [L]")
-    y: float = Field(description="Y-coordinate value [L]")
-    z: float = Field(description="Z-coordinate value [L]")
+    x: float = Field(description="The x-coordinate value [L].")
+    y: float = Field(description="The y-coordinate value [L].")
+    z: float = Field(description="The z-coordinate value [L].")
 
 
 class TimeDomain(BaseModel):
     """Time domain configuration."""
 
-    start_time: float = Field(description="Start time [T]")
-    end_time: float = Field(description="End time [T]")
-    n: int = Field(description="Number of time steps")
-
-
-class Source(BaseModel):
-    """Source configuration."""
-
-    centroid: Centroid
-    description: SourceType = Field(description="Source type description")
-    shape: str = Field(description="Shape of the source signal")
-    amplitude: float = Field(description="Amplitude of the source signal")
-    frequency: float = Field(description="Frequency of the source signal")
-    constants: Constants
-    time_domain: TimeDomain
+    start_time: float = Field(description="The start time [T].")
+    end_time: float = Field(description="The end time [T].")
+    time_steps: int = Field(description="The number of time steps.")
 
 
 class FWHSurface(BaseModel):
-    """FW H surface configuration."""
+    """FW-H surface configuration."""
 
-    centroid: Centroid
+    point: Point
     r: float = Field(
-        description="Perpendicular distance from centroid to "
-        "each face of the FW-H surface"
+        description="The perpendicular distance from centroid to each face of "
+        "the FW-H surface."
     )
     n: int = Field(
-        description="Number of points on each edge of the FW-H surface."
+        description="The number of points on each edge of the FW-H surface."
     )
 
 
 class Observer(BaseModel):
     """Observer configuration."""
 
-    centroid: Centroid
+    point: Point
+
+
+class Source(BaseModel):
+    """Configuration settings used by the source generation routine."""
+
+    point: Point
+    description: SourceType = Field(description="The source type description.")
+    shape: str = Field(description="The shape of the source function.")
+    amplitude: float = Field(description="The amplitude of the source signal.")
+    frequency: float = Field(description="The frequency of the source signal.")
+    constants: Constants
+    time_domain: TimeDomain
+    fw_h_surface: FWHSurface
+    observer: Observer
 
 
 class ConfigSchema(BaseModel):
-    """Config schema."""
+    """Top-level configuration schema."""
 
+    global_config: GlobalConfig
     solver: Solver
     source: Source
-    fw_h_surface: FWHSurface
-    observer: Observer
 
 
 class Config:
@@ -118,13 +138,13 @@ class Config:
     Parameters
     ----------
     file_path
-        Path to the YAML configuration file
+        The path to the YAML configuration file.
 
     Attributes
     ----------
     file_path
     data
-        Parsed and validated configuration object
+        The parsed and validated configuration object.
 
     """
 
@@ -145,35 +165,28 @@ class Config:
             raw_data = yaml.safe_load(file)
             return ConfigSchema(**raw_data)
 
-    def get(self) -> ConfigSchema:
-        """Return the configuration object.
-
-        Returns
-        -------
-        ConfigSchema
-            Parsed and validated configuration object
-
-        """
-        return self.data
-
 
 def parse_shape_function(shape: str) -> sp.FunctionClass:
     """Parse the shape function field into a callable function.
 
+    As of writing, this function only supports sinusoidal SymPy
+    functions.
+
     Parameters
     ----------
     shape
-        String name of the shape function
+        A string literal representation of the shape function.
 
     Returns
     -------
     FunctionClass
-        SymPy function to be used as the shape function
+        The SymPy function to be used as the shape function.
 
     Raises
     ------
     ValueError
-        If the shape function field is not an implemented callable
+        Raised if the shape function field is not an implemented
+        callable.
 
     """
     match shape.lower():

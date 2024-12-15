@@ -1,19 +1,20 @@
 ---
-solver:
+global_config:
   logging:
     logging_dir: /Users/mcmehrtens/src/fw-h-solver/log
     log_file_timestamp: "%Y%m%d-%H.%M.%S"
-  input:
-    input_file: /Users/mcmehrtens/src/fw-h-solver/input/20241211-12.46.09-fw-h.npz
   output:
     output_dir: /Users/mcmehrtens/src/fw-h-solver/output
     output_file_timestamp: "%Y%m%d-%H.%M.%S"
+solver:
+  input:
+    data_file_path: /Users/mcmehrtens/src/fw-h-solver/input/20241211-12.46.09-fw-h.npz
   constants:
-    c_0: 340.2
-    rho_0: 1.225
+    c_0: 340.2    # [L * T^-1]
+    rho_0: 1.225  # [M * L^-3]
   time_steps: 2500
 source:
-  centroid:
+  point:
     x: 0  # [L]
     y: 0  # [L]
     z: 0  # [L]
@@ -27,17 +28,17 @@ source:
   time_domain:
     start_time: 0  # [T]
     end_time: 0.5  # [T]
-    n: 2500
-fw_h_surface:
-  centroid:
-    x: 0  # [L]
-    y: 0  # [L]
-    z: 0  # [L]
-  r: 7.5  # [L]
-  n: 50
-observer:
-  centroid:
-    x: 40.1  # [L]
-    y: 42.7  # [L]
-    z: 31.4  # [L]
+    time_steps: 2500
+  fw_h_surface:
+    point:
+      x: 0  # [L]
+      y: 0  # [L]
+      z: 0  # [L]
+    r: 7.5  # [L]
+    n: 50
+  observer:
+    point:
+      x: 40.1  # [L]
+      y: 42.7  # [L]
+      z: 31.4  # [L]
 ...

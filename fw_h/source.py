@@ -196,21 +196,22 @@ class SourceData:
     def mesh(self) -> None:
         """Mesh the surfaces and discretize the time domain."""
         self.fw_h_surface = generate_fw_h_surface(
-            self.config.fw_h_surface.r, self.config.fw_h_surface.n
+            self.config.source.fw_h_surface.r,
+            self.config.source.fw_h_surface.n,
         )
 
         logger.info("Meshing observer surface...")
         self.observer_surface = Surface(
-            np.array([self.config.observer.centroid.x], dtype=np.float64),
-            np.array([self.config.observer.centroid.y], dtype=np.float64),
-            np.array([self.config.observer.centroid.z], dtype=np.float64),
+            np.array([self.config.source.observer.point.x], dtype=np.float64),
+            np.array([self.config.source.observer.point.y], dtype=np.float64),
+            np.array([self.config.source.observer.point.z], dtype=np.float64),
         )
 
         logger.info("Discretizing source time domain")
         self.time_domain = np.linspace(
             self.config.source.time_domain.start_time,
             self.config.source.time_domain.end_time,
-            self.config.source.time_domain.n,
+            self.config.source.time_domain.time_steps,
             dtype=np.float64,
         )
 
@@ -339,9 +340,9 @@ class SourceData:
             surface.x[:, np.newaxis],
             surface.y[:, np.newaxis],
             surface.z[:, np.newaxis],
-            self.config.source.centroid.x,
-            self.config.source.centroid.y,
-            self.config.source.centroid.z,
+            self.config.source.point.x,
+            self.config.source.point.y,
+            self.config.source.point.z,
             self.time_domain[np.newaxis, :],
             self.config.source.amplitude,
             self.config.source.frequency,
@@ -394,9 +395,9 @@ class SourceData:
             surface.x[:, np.newaxis],
             surface.y[:, np.newaxis],
             surface.z[:, np.newaxis],
-            self.config.source.centroid.x,
-            self.config.source.centroid.y,
-            self.config.source.centroid.z,
+            self.config.source.point.x,
+            self.config.source.point.y,
+            self.config.source.point.z,
             self.time_domain[np.newaxis, :],
             self.config.source.amplitude,
             self.config.source.frequency,
@@ -432,9 +433,9 @@ class SourceData:
                 self.fw_h_surface.x[:, np.newaxis],
                 self.fw_h_surface.y[:, np.newaxis],
                 self.fw_h_surface.z[:, np.newaxis],
-                self.config.source.centroid.x,
-                self.config.source.centroid.y,
-                self.config.source.centroid.z,
+                self.config.source.point.x,
+                self.config.source.point.y,
+                self.config.source.point.z,
                 self.time_domain[np.newaxis, :],
                 self.config.source.amplitude,
                 self.config.source.frequency,
@@ -490,7 +491,7 @@ class SourceData:
 
     def load(self) -> None:
         """Load source data from binary files."""
-        input_path = Path(self.config.solver.input.input_file)
+        input_path = Path(self.config.solver.input.data_file_path)
         logger.info("Loading source data from %s...", input_path)
         logger.info("This may take a while...")
         source_data = np.load(input_path)

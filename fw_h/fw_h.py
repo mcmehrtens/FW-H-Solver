@@ -6,7 +6,6 @@ import json
 import logging
 from pathlib import Path
 
-import numpy as np
 import yaml
 
 from fw_h.config import (
@@ -150,26 +149,17 @@ def solver_routine(logger: logging.Logger, config: ConfigSchema) -> None:
     solver = Solver(config, source)
     solver.compute()
 
-    logger.info("Writing solution...")
-    np.savez_compressed(
-        Path(config.solver.output.output_dir) / "solution.npz",
-        source_time=solver.source.time_domain,
-        analytical_observer_pressure=solver.source.observer_pressure,
-        observer_time=solver.time_domain,
-        observer_pressure=solver.p,
-    )
-
 
 def main() -> None:
     """Start the FW-H solver."""
     program_start = datetime.datetime.now(tz=datetime.UTC)
     args = parse_arguments()
 
-    config = Config(args.config).get()
+    config = Config(args.config).data
 
     logger = configure_logging(
-        config.solver.logging.logging_dir,
-        config.solver.logging.log_file_timestamp,
+        config.global_config.logging.logging_dir,
+        config.global_config.logging.log_file_timestamp,
         program_start,
         verbose=args.verbose,
     )
