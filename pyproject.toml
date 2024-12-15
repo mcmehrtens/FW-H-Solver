@@ -39,6 +39,7 @@ line-length = 79
 
 [tool.ruff.lint]
 extend-select = [
+    "B",
     "D",
     "D417",
 ]
@@ -50,6 +51,7 @@ convention = "numpy"
 
 [tool.ruff.format]
 docstring-code-format = true
+preview = true
 
 
 [build-system]

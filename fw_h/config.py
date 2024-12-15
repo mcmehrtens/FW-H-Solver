@@ -92,7 +92,7 @@ class FW_H_Surface(BaseModel):
         "each face of the FW-H surface"
     )
     n: int = Field(
-        description="Number of points on each edge of the FW-H " "surface."
+        description="Number of points on each edge of the FW-H surface."
     )
 
 

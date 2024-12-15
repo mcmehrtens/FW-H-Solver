@@ -110,7 +110,7 @@ class Solver:
     def _compute_cos_theta(self):
         """Compute cos(θ) for each point on the FW-H surface."""
         logger.info(
-            "Computing the cos(θ) for each point on the FW-H " "surface..."
+            "Computing the cos(θ) for each point on the FW-H surface..."
         )
         self.cos_theta = (
             self.r_hat_x * self.source.fw_h_surface.n_x

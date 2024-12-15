@@ -92,7 +92,7 @@ def configure_logging(
     file_handler.setLevel(verbosity)
 
     formatter = logging.Formatter(
-        "%(asctime)s " "- %(name)s " "- %(levelname)s " "- %(message)s"
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
     formatter.default_msec_format = "%s.%03d"
 
