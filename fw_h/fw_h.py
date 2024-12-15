@@ -22,13 +22,13 @@ def parse_arguments() -> argparse.Namespace:
     Returns
     -------
     Namespace
-        The parsed arguments
+        The parsed arguments.
 
     """
     parser = argparse.ArgumentParser(
         description=(
-            "A solver for the Ffowcs Williams and Hawkings (FW-H) "
-            "equation using Farassat's Formulation 1A written in Python."
+            "A solver for the Ffowcs Williams and Hawkings (FW-H) equation "
+            "using Farassat's Formulation 1A written in Python."
         ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
@@ -64,20 +64,20 @@ def configure_logging(
 
     Parameters
     ----------
+    logging_dir
+        The directory where logs should be written.
+    log_file_timestamp
+        The timestamp format to prepend to log files.
+    timestamp
+        The approximate time at which the program began executing.
     verbose
         If true, sets the logging level to DEBUG, otherwise, the logging
-        level will be set to INFO
-    logging_dir
-        Directory where logs should be written
-    log_file_timestamp
-        Timestamp format for logging files
-    timestamp
-        Approximate time at which the program started
+        level will be set to INFO.
 
     Returns
     -------
     Logger
-        This modules logger
+        This modules logger.
 
     """
     verbosity = logging.DEBUG if verbose else logging.INFO
@@ -115,11 +115,11 @@ def source_routine(
     Parameters
     ----------
     logger
-        This modules logging object
+        This module's logging object.
     config
-        Configuration object parsed from the YAML configuration file
+        The configuration object parsed from the configuration file.
     write
-        Whether the source data should be written to a file
+        Whether the source data should be written to a file.
 
     """
     logger.info("Beginning source generation routine...")
@@ -138,9 +138,9 @@ def solver_routine(logger: logging.Logger, config: ConfigSchema) -> None:
     Parameters
     ----------
     logger
-        This modules logging object
+        This module's logging object.
     config
-        Configuration object parsed from the YAML configuration file
+        The configuration object parsed from the configuration file.
 
     """
     logger.info("Beginning solver routine...")

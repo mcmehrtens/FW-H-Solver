@@ -37,20 +37,21 @@ def evaluate_monopole_source_functions(
     Parameters
     ----------
     source_shape_fn
-        SymPy function to use for the shape of the source perturbations
+        The SymPy function to use for the shape of the source
+        perturbations.
 
     Returns
     -------
     Callable
-        Velocity potential field function
+        The velocity potential field function.
     Callable
-        Pressure field function
+        The pressure field function.
     Callable
-        Velocity field (x-component) function
+        The velocity field (x-component) function.
     Callable
-        Velocity field (y-component) function
+        The velocity field (y-component) function.
     Callable
-        Velocity field (z-component) function
+        The velocity field (z-component) function.
 
     """
     logger.info("Calculating analytical source functions symbolically...")
@@ -120,47 +121,48 @@ def evaluate_monopole_source_functions(
 
 
 class SourceData:
-    """Generates all the data for an analytical acoustic source.
+    """Represents the data relevant to a synthetic acoustic source.
 
     To generate an analytical solution, run mesh(),
-    compute_source_functions(), and finally compute().
+    compute_source_functions(), and finally compute(). Use write() and
+    load() to save and load the source data.
 
     Parameters
     ----------
     config
-        Configuration object
+        The parsed configuration object.
 
     Attributes
     ----------
     config
     fw_h_surface
-        Penetrable FW-H surface encapsulating the source
+        The penetrable FW-H surface encapsulating the sources.
     observer_surface
-        Observer points to calculate the theoretical solution for
+        The observer points to calculate the theoretical solution for.
     time_domain
-        Time steps
+        The time steps in the source time domain.
     source_shape_function
-        Shape of pressure perturbations caused by the source
+        The shape of the pressure perturbations caused by the source.
     fw_h_velocity_potential
-        Velocity potential on the FW-H surface calculated over time.
+        The velocity potential on the FW-H surface calculated over time.
         Each row corresponds to a time step. Each column corresponds to
         the same index on the surface.
     observer_velocity_potential
-        Same as fw_h_velocity_potential, but for the observer surface
+        Same as fw_h_velocity_potential, but for the observer surface.
     fw_h_pressure
-        Pressure on the FW-H surface calculated over time. Each row
+        The pressure on the FW-H surface calculated over time. Each row
         corresponds to a time step. Each column corresponds to the same
         index on the surface.
     observer_pressure
-        Same as fw_h_pressure, but for the observer surface
+        Same as fw_h_pressure, but for the observer surface.
     fw_h_velocity_x
-        x-component of velocity on the FW-H surface calculated over
+        The x-component of velocity on the FW-H surface calculated over
         time. Each row corresponds to a time step. Each column
         corresponds to the same index on the surface.
     fw_h_velocity_y
-        See fw_h_velocity_x
+        See fw_h_velocity_x.
     fw_h_velocity_z
-        See fw_h_velocity_x
+        See fw_h_velocity_x.
 
     """
 
@@ -168,33 +170,42 @@ class SourceData:
         logger.info("Initializing SourceData object...")
         self.config = config
 
-        self.fw_h_surface: Surface = Surface(
+        self.fw_h_surface = Surface(
             np.ndarray(0, dtype=np.float64),
             np.ndarray(0, dtype=np.float64),
             np.ndarray(0, dtype=np.float64),
         )
-        self.observer_surface: Surface = Surface(
+        self.observer_surface = Surface(
             np.ndarray(0, dtype=np.float64),
             np.ndarray(0, dtype=np.float64),
             np.ndarray(0, dtype=np.float64),
         )
         self.time_domain = np.ndarray(0, dtype=np.float64)
-        self.source_shape_function = None
-        self._velocity_potential_fn = None
-        self._pressure_fn = None
-        self._velocity_x_fn = None
-        self._velocity_y_fn = None
-        self._velocity_z_fn = None
-        self.fw_h_velocity_potential = np.ndarray(0, dtype=np.float64)
-        self.observer_velocity_potential = np.ndarray(0, dtype=np.float64)
-        self.fw_h_pressure = np.ndarray(0, dtype=np.float64)
-        self.observer_pressure = np.ndarray(0, dtype=np.float64)
-        self.fw_h_velocity_x = np.ndarray(0, dtype=np.float64)
-        self.fw_h_velocity_y = np.ndarray(0, dtype=np.float64)
-        self.fw_h_velocity_z = np.ndarray(0, dtype=np.float64)
+        self.source_shape_function: sp.FunctionClass | None = None
+        self._velocity_potential_fn: Callable | None = None
+        self._pressure_fn: Callable | None = None
+        self._velocity_x_fn: Callable | None = None
+        self._velocity_y_fn: Callable | None = None
+        self._velocity_z_fn: Callable | None = None
+        self.fw_h_velocity_potential = np.ndarray(
+            np.ndarray(0, dtype=np.float64)
+        )
+        self.observer_velocity_potential = np.ndarray(
+            np.ndarray(0, dtype=np.float64)
+        )
+        self.fw_h_pressure = np.ndarray(np.ndarray(0, dtype=np.float64))
+        self.observer_pressure = np.ndarray(np.ndarray(0, dtype=np.float64))
+        self.fw_h_velocity_x = np.ndarray(np.ndarray(0, dtype=np.float64))
+        self.fw_h_velocity_y = np.ndarray(np.ndarray(0, dtype=np.float64))
+        self.fw_h_velocity_z = np.ndarray(np.ndarray(0, dtype=np.float64))
 
     def mesh(self) -> None:
-        """Mesh the surfaces and discretize the time domain."""
+        """Mesh the surfaces and discretize the time domain.
+
+        Creates a 3D cube as the FW-H surface. This function currently
+        only supports a single point as the observer "surface."
+
+        """
         self.fw_h_surface = generate_fw_h_surface(
             self.config.source.fw_h_surface.r,
             self.config.source.fw_h_surface.n,
@@ -228,15 +239,15 @@ class SourceData:
         Returns
         -------
         Callable
-            Velocity potential field function
+            The velocity potential field function.
         Callable
-            Pressure field function
+            The pressure field function.
         Callable
-            Velocity field (x-component) function
+            The velocity field (x-component) function.
         Callable
-            Velocity field (y-component) function
+            The velocity field (y-component) function.
         Callable
-            Velocity field (z-component) function
+            The velocity field (z-component) function.
 
         """
         source = self.config.source.description
@@ -254,7 +265,8 @@ class SourceData:
         """Compute the source shape functions and the source functions.
 
         These source functions include the velocity potential, pressure,
-        and velocity.
+        and velocity functions.
+
         """
         self.source_shape_function = parse_shape_function(
             self.config.source.shape
@@ -268,55 +280,33 @@ class SourceData:
         ) = self._generate_source_functions()
 
     def compute(self) -> None:
-        """Compute the source data.
-
-        Raises
-        ------
-        RuntimeError
-            If mesh(), compute_source_functions(), or both have not been
-            called prior to running compute()
-
-        """
+        """Compute the source data."""
         logger.info("Beginning source computation...")
-        self.fw_h_velocity_potential = self.calculate_fw_h_velocity_potential()
-        self.observer_velocity_potential = (
-            self.calculate_observer_velocity_potential()
-        )
+        self.calculate_fw_h_velocity_potential()
+        self.calculate_observer_velocity_potential()
 
-        self.fw_h_pressure = self.calculate_fw_h_pressure()
-        self.observer_pressure = self.calculate_observer_pressure()
+        self.calculate_fw_h_pressure()
+        self.calculate_observer_pressure()
 
         (self.fw_h_velocity_x, self.fw_h_velocity_y, self.fw_h_velocity_z) = (
             self.calculate_velocity()
         )
 
-    def calculate_fw_h_velocity_potential(
-        self,
-    ) -> NDArray[NDArray[np.float64]]:
-        """Calculate the velocity potential over the FW-H surface.
+    def calculate_fw_h_velocity_potential(self) -> None:
+        """Calculate the velocity potential over the FW-H surface."""
+        logger.info("Calculating velocity potential over the FW-H surface...")
+        self.fw_h_velocity_potential = self._calculate_velocity_potential(
+            self.fw_h_surface
+        )
 
-        Returns
-        -------
-        NDArray[NDArray[np.float64]]
-            Matrix of velocity potentials. Each row is a time step. Each
-            column corresponds to the respective point on the surface.
-
-        """
-        return self._calculate_velocity_potential(self.fw_h_surface)
-
-    def calculate_observer_velocity_potential(
-        self,
-    ) -> NDArray[NDArray[np.float64]]:
-        """Calculate the velocity potential over the observer surface.
-
-        Returns
-        -------
-        NDArray[NDArray[np.float64]]
-            Matrix of velocity potentials. Each row is a time step. Each
-            column corresponds to the respective point on the surface.
-
-        """
-        return self._calculate_velocity_potential(self.observer_surface)
+    def calculate_observer_velocity_potential(self) -> None:
+        """Calculate velocity potential over the observer surface."""
+        logger.info(
+            "Calculating velocity potential over the observer surface..."
+        )
+        self.observer_velocity_potential = self._calculate_velocity_potential(
+            self.observer_surface
+        )
 
     def _calculate_velocity_potential(
         self, surface: Surface
@@ -335,7 +325,6 @@ class SourceData:
             column corresponds to the respective point on the surface.
 
         """
-        logger.info("Calculating velocity potential over surface...")
         return self._velocity_potential_fn(
             surface.x[:, np.newaxis],
             surface.y[:, np.newaxis],
@@ -349,29 +338,15 @@ class SourceData:
             self.config.source.constants.c_0,
         ).T
 
-    def calculate_fw_h_pressure(self) -> NDArray[NDArray[np.float64]]:
-        """Calculate the pressure over the FW-H surface.
+    def calculate_fw_h_pressure(self) -> None:
+        """Calculate the pressure over the FW-H surface."""
+        logger.info("Calculating pressure over the FW-H surface...")
+        self.fw_h_pressure = self._calculate_pressure(self.fw_h_surface)
 
-        Returns
-        -------
-        NDArray[NDArray[np.float64]]
-            Matrix of surface pressure. Each row is a time step. Each
-            column corresponds to the respective point on the surface.
-
-        """
-        return self._calculate_pressure(self.fw_h_surface)
-
-    def calculate_observer_pressure(self) -> NDArray[NDArray[np.float64]]:
-        """Calculate the pressure over the observer surface.
-
-        Returns
-        -------
-        NDArray[NDArray[np.float64]]
-            Matrix of surface pressure. Each row is a time step. Each
-            column corresponds to the respective point on the surface.
-
-        """
-        return self._calculate_pressure(self.fw_h_surface)
+    def calculate_observer_pressure(self) -> None:
+        """Calculate the pressure over the observer surface."""
+        logger.info("Calculating pressure over the observer surface...")
+        self.observer_pressure = self._calculate_pressure(self.fw_h_surface)
 
     def _calculate_pressure(
         self, surface: Surface
@@ -390,7 +365,6 @@ class SourceData:
             column corresponds to the respective point on the surface.
 
         """
-        logger.info("Calculating pressure over surface...")
         return self._pressure_fn(
             surface.x[:, np.newaxis],
             surface.y[:, np.newaxis],
@@ -421,9 +395,9 @@ class SourceData:
             time step. Each column corresponds to the respective point
             on the surface.
         NDArray[NDArray[np.float64]]
-            Same as above but for velocity in the y direction
+            Same as above but for velocity in the y direction.
         NDArray[NDArray[np.float64]]
-            Same as above but for velocity in the z direction
+            Same as above but for velocity in the z direction.
 
         """
         logger.info("Calculating velocity over FW-H surface...")
@@ -449,7 +423,7 @@ class SourceData:
         )
 
     def write(self) -> None:
-        """Write relevant data to binary files."""
+        """Write relevant data to a NumPy .npz archive."""
         logger.info("Writing analytical source data to file...")
         output_dir = self.config.solver.output.output_dir
 
@@ -490,7 +464,7 @@ class SourceData:
         )
 
     def load(self) -> None:
-        """Load source data from binary files."""
+        """Load source data from NumPy .npz archive."""
         input_path = Path(self.config.solver.input.data_file_path)
         logger.info("Loading source data from %s...", input_path)
         logger.info("This may take a while...")
