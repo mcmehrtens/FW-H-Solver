@@ -1,7 +1,7 @@
 [tool.poetry]
 package-mode = false
 name = "fw-h"
-version = "0.1.0"
+version = "1.0.0"
 description = "A solver for the Ffowcs Williams and Hawkings (FW-H) equation written in Python using Farassat's Formulation 1A."
 license = "MIT"
 authors = [
