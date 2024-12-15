@@ -41,6 +41,7 @@ class Surface:
     vector, if defined is [n_x[i], n_y[i], n_z[i]]. If this surface is
     representing an observer surface, it is unlikely to have normal
     vectors defined since they server no purpose for FW-H analysis.
+
     """
 
     def __init__(
@@ -77,6 +78,7 @@ def generate_fw_h_surface(r: float, n: int) -> Surface:
     -------
     Surface
         Object representing the cuboid FW-H surface
+
     """
     # TODO: implement the ability to specify a centroid from the config
     logger.info("Meshing FW-H surface...")

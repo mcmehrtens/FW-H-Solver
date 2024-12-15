@@ -53,6 +53,7 @@ def evaluate_monopole_source_functions(
         Velocity field (y-component) function
     Callable
         Velocity field (z-component) function
+
     """
     logger.info("Calculating analytical source functions symbolically...")
     x, y, z, x_0, y_0, z_0, t, A, omega, c_0, rho_0 = sp.symbols(
@@ -152,6 +153,7 @@ class SourceData:
         See fw_h_velocity_x
     fw_h_velocity_z
         See fw_h_velocity_x
+
     """
 
     def __init__(self, config: ConfigSchema):
@@ -218,6 +220,7 @@ class SourceData:
             Velocity field (y-component) function
         Callable
             Velocity field (z-component) function
+
         """
         match self.config.source.description:
             case SourceType.MONOPOLE:
@@ -253,6 +256,7 @@ class SourceData:
         RuntimeError
             If mesh(), compute_source_functions(), or both have not been
             called prior to running compute()
+
         """
         logger.info("Beginning source computation...")
         if (
@@ -307,6 +311,7 @@ class SourceData:
         NDArray[NDArray[np.float64]]
             Matrix of velocity potentials. Each row is a time step. Each
             column corresponds to the respective point on the surface.
+
         """
         logger.info(
             "Calculating velocity potential over %s surface...",
@@ -342,6 +347,7 @@ class SourceData:
         NDArray[NDArray[np.float64]]
             Matrix of surface pressure. Each row is a time step. Each
             column corresponds to the respective point on the surface.
+
         """
         logger.info(
             "Calculating pressure over %s surface...",
@@ -381,6 +387,7 @@ class SourceData:
             Same as above but for velocity in the y direction
         NDArray[NDArray[np.float64]]
             Same as above but for velocity in the z direction
+
         """
         logger.info("Calculating velocity over FW-H surface...")
 
@@ -446,6 +453,7 @@ class SourceData:
         )
 
     def load(self):
+        """Load source data from binary files."""
         input_path = Path(self.config.solver.input.input_file)
         logger.info("Loading source data from %s...", input_path)
         logger.info("This may take a while...")

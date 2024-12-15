@@ -38,7 +38,7 @@ line-length = 79
 
 
 [tool.ruff.lint]
-select = ["D"]
+extend-select = ["D"]
 
 
 [tool.ruff.lint.pydocstyle]

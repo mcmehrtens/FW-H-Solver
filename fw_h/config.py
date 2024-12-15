@@ -19,25 +19,35 @@ class SourceType(Enum):
 
 
 class Logging(BaseModel):
+    """Logging configuration."""
+
     logging_dir: str = Field(description="Logging directory")
     log_file_timestamp: str = Field(description="Log file timestamp")
 
 
 class Input(BaseModel):
+    """Input configuration."""
+
     input_file: str = Field(description="Path to input file")
 
 
 class Output(BaseModel):
+    """Output configuration."""
+
     output_dir: str = Field(description="Output directory")
     output_file_timestamp: str = Field(description="Output file timestamp")
 
 
 class Constants(BaseModel):
+    """Constants configuration."""
+
     c_0: float = Field(description="Speed of sound [L * T^-1]")
     rho_0: float = Field(description="Density of fluid [M * L^-3]")
 
 
 class Solver(BaseModel):
+    """Solver configuration."""
+
     logging: Logging
     input: Input
     output: Output
@@ -46,18 +56,24 @@ class Solver(BaseModel):
 
 
 class Centroid(BaseModel):
+    """Centroid configuration."""
+
     x: float = Field(description="X-coordinate value [L]")
     y: float = Field(description="Y-coordinate value [L]")
     z: float = Field(description="Z-coordinate value [L]")
 
 
 class TimeDomain(BaseModel):
+    """Time domain configuration."""
+
     start_time: float = Field(description="Start time [T]")
     end_time: float = Field(description="End time [T]")
     n: int = Field(description="Number of time steps")
 
 
 class Source(BaseModel):
+    """Source configuration."""
+
     centroid: Centroid
     description: SourceType = Field(description="Source type description")
     shape: str = Field(description="Shape of the source signal")
@@ -67,8 +83,9 @@ class Source(BaseModel):
     time_domain: TimeDomain
 
 
-# noinspection PyPep8Naming
 class FW_H_Surface(BaseModel):
+    """FW H surface configuration."""
+
     centroid: Centroid
     r: float = Field(
         description="Perpendicular distance from centroid to "
@@ -80,10 +97,14 @@ class FW_H_Surface(BaseModel):
 
 
 class Observer(BaseModel):
+    """Observer configuration."""
+
     centroid: Centroid
 
 
 class ConfigSchema(BaseModel):
+    """Config schema."""
+
     solver: Solver
     source: Source
     fw_h_surface: FW_H_Surface
@@ -103,6 +124,7 @@ class Config:
     file_path
     data
         Parsed and validated configuration object
+
     """
 
     def __init__(self, file_path: str):
@@ -116,6 +138,7 @@ class Config:
         -------
         ConfigSchema
             Parsed and validated configuration object
+
         """
         with open(self.file_path, "r") as file:
             raw_data = yaml.safe_load(file)
@@ -128,6 +151,7 @@ class Config:
         -------
         ConfigSchema
             Parsed and validated configuration object
+
         """
         return self.data
 
@@ -149,6 +173,7 @@ def parse_shape_function(shape: str) -> sp.FunctionClass:
     ------
     ValueError
         If the shape function field is not an implemented callable
+
     """
     match shape.lower():
         case "sin":

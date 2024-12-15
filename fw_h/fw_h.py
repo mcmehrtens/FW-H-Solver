@@ -24,6 +24,7 @@ def parse_arguments() -> argparse.Namespace:
     -------
     Namespace
         The parsed arguments
+
     """
     parser = argparse.ArgumentParser(
         description=(
@@ -77,6 +78,7 @@ def configure_logging(
     -------
     Logger
         This modules logger
+
     """
     verbosity = logging.DEBUG if verbose else logging.INFO
 
@@ -116,6 +118,7 @@ def source_routine(logger: logging.Logger, config: ConfigSchema, write: bool):
         Configuration object parsed from the YAML configuration file
     write
         Whether the source data should be written to a file
+
     """
     logger.info("Beginning source generation routine...")
     source = SourceData(config)
@@ -136,6 +139,7 @@ def solver_routine(logger: logging.Logger, config: ConfigSchema):
         This modules logging object
     config
         Configuration object parsed from the YAML configuration file
+
     """
     logger.info("Beginning solver routine...")
     source = SourceData(config)
