@@ -1,4 +1,5 @@
 [tool.poetry]
+package-mode = false
 name = "fw-h"
 version = "0.1.0"
 description = "A solver for the Ffowcs Williams and Hawkings (FW-H) equation written in Python using Farassat's Formulation 1A."
@@ -23,6 +24,29 @@ pre-commit = "^4.0.1"
 
 [tool.poetry.scripts]
 fw-h = "fw_h.fw_h:main"
+
+
+[tool.ruff]
+exclude = [
+    ".python-version",
+    "input",
+    "log",
+    "output",
+]
+
+line-length = 79
+
+
+[tool.ruff.lint]
+select = ["D"]
+
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+
+[tool.ruff.format]
+docstring-code-format = true
 
 
 [build-system]
