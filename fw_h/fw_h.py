@@ -1,9 +1,9 @@
 """Entrypoint to the FW-H solver."""
 
 import argparse
+import datetime
 import json
 import logging
-from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -55,10 +55,11 @@ def parse_arguments() -> argparse.Namespace:
 
 
 def configure_logging(
-    verbose: bool,
     logging_dir: str,
     log_file_timestamp: str,
     timestamp: datetime,
+    *,
+    verbose: bool,
 ) -> logging.Logger:
     """Configure the logging module.
 
@@ -107,7 +108,9 @@ def configure_logging(
     return logging.getLogger(__name__)
 
 
-def source_routine(logger: logging.Logger, config: ConfigSchema, write: bool):
+def source_routine(
+    logger: logging.Logger, config: ConfigSchema, *, write: bool
+) -> None:
     """Generate and optionally write the source data to a file.
 
     Parameters
@@ -130,7 +133,7 @@ def source_routine(logger: logging.Logger, config: ConfigSchema, write: bool):
         source.write()
 
 
-def solver_routine(logger: logging.Logger, config: ConfigSchema):
+def solver_routine(logger: logging.Logger, config: ConfigSchema) -> None:
     """Solve for observer pressure given the input data.
 
     Parameters
@@ -157,18 +160,18 @@ def solver_routine(logger: logging.Logger, config: ConfigSchema):
     )
 
 
-def main():
+def main() -> None:
     """Start the FW-H solver."""
-    program_start = datetime.now()
+    program_start = datetime.datetime.now(tz=datetime.UTC)
     args = parse_arguments()
 
     config = Config(args.config).get()
 
     logger = configure_logging(
-        args.verbose,
         config.solver.logging.logging_dir,
         config.solver.logging.log_file_timestamp,
         program_start,
+        verbose=args.verbose,
     )
 
     logger.info("Starting FW-H solver...")
@@ -183,7 +186,7 @@ def main():
     )
 
     if args.source or args.write_source:
-        source_routine(logger, config, args.write_source)
+        source_routine(logger, config, write=args.write_source)
     else:
         solver_routine(logger, config)
 

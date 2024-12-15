@@ -1,6 +1,7 @@
 """Import the FW-H configuration."""
 
 from enum import Enum
+from pathlib import Path
 
 import sympy as sp
 import yaml
@@ -83,7 +84,7 @@ class Source(BaseModel):
     time_domain: TimeDomain
 
 
-class FW_H_Surface(BaseModel):
+class FWHSurface(BaseModel):
     """FW H surface configuration."""
 
     centroid: Centroid
@@ -107,7 +108,7 @@ class ConfigSchema(BaseModel):
 
     solver: Solver
     source: Source
-    fw_h_surface: FW_H_Surface
+    fw_h_surface: FWHSurface
     observer: Observer
 
 
@@ -127,8 +128,8 @@ class Config:
 
     """
 
-    def __init__(self, file_path: str):
-        self.file_path = file_path
+    def __init__(self, file_path: str) -> None:
+        self.file_path = Path(file_path)
         self.data = self._load_and_validate()
 
     def _load_and_validate(self) -> ConfigSchema:
@@ -140,7 +141,7 @@ class Config:
             Parsed and validated configuration object
 
         """
-        with open(self.file_path, "r") as file:
+        with self.file_path.open() as file:
             raw_data = yaml.safe_load(file)
             return ConfigSchema(**raw_data)
 
@@ -179,5 +180,6 @@ def parse_shape_function(shape: str) -> sp.FunctionClass:
         case "sin":
             fn = sp.sin
         case _:
-            raise ValueError(f"Invalid shape function: {shape}")
+            err = f"Shape function '{shape}' is not implemented."
+            raise NotImplementedError(err)
     return fn

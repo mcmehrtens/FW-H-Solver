@@ -1,6 +1,7 @@
 """Define general geometric structures."""
 
 import logging
+from dataclasses import dataclass, field
 
 import numpy as np
 from numpy.typing import NDArray
@@ -8,57 +9,44 @@ from numpy.typing import NDArray
 logger = logging.getLogger(__name__)
 
 
-class Surface:
-    """Represent a 3-D surface.
+@dataclass
+class Normals:
+    """List of 3-D normal vectors corresponding to a surface.
+
+    [n_x[i], n_y[i], n_z[i]] is a single normal vector.
 
     Parameters
     ----------
-    x
-        Flattened list of x coordinates
-    y
-        Flattened list of y coordinates
-    z
-        Flattened list of z coordinates
-    n_x : optional
-        x-component of the normal vector. See notes below.
-    n_y : optional
-        y-component of the normal vector. See notes below.
-    n_z : optional
-        z-component of the normal vector. See notes below.
-
-    Attributes
-    ----------
-    x
-    y
-    z
-    n_x
-    n_y
-    n_z
-
-    Notes
-    -----
-    For each point i on the surface (x[i], y[i], z[i]), the normal
-    vector, if defined is [n_x[i], n_y[i], n_z[i]]. If this surface is
-    representing an observer surface, it is unlikely to have normal
-    vectors defined since they server no purpose for FW-H analysis.
-
+    n_x, n_y, n_z
+        The magnitudes of the normal vectors in the x, y, and z
+        cartesian coordinate directions.
     """
 
-    def __init__(
-        self,
-        x: NDArray[np.float64],
-        y: NDArray[np.float64],
-        z: NDArray[np.float64],
-        n_x: NDArray[np.float64] = None,
-        n_y: NDArray[np.float64] = None,
-        n_z: NDArray[np.float64] = None,
-    ):
-        self.x = x
-        self.y = y
-        self.z = z
-        self.n_x = n_x
-        self.n_y = n_y
-        self.n_z = n_z
+    n_x: NDArray[np.float64]
+    n_y: NDArray[np.float64]
+    n_z: NDArray[np.float64]
+
+
+@dataclass
+class Surface:
+    """A 3-D surface.
+
+    (x[i], y[i], z[i]) is a 3-D cartesian coordinate corresponding to a
+    point on the surface. If defined, [x[i], y[i], z[i]] is the normal
+    vector corresponding to that point.
+
+    Parameters
+    ----------
+    x, y, z
+        The x, y, and z coordinates for each point on the surface.
+    normals
+        The normal vectors for each point on the surface.
+    """
+
+    x: NDArray[np.float64]
+    y: NDArray[np.float64]
+    z: NDArray[np.float64]
+    normals: Normals | None = field(default=None)
 
 
 def generate_fw_h_surface(r: float, n: int) -> Surface:
@@ -80,7 +68,6 @@ def generate_fw_h_surface(r: float, n: int) -> Surface:
         Object representing the cuboid FW-H surface
 
     """
-    # TODO: implement the ability to specify a centroid from the config
     logger.info("Meshing FW-H surface...")
     delta = 2 * r / n
     logger.debug("Mesh cell length: %f [L]", delta)
@@ -167,28 +154,30 @@ def generate_fw_h_surface(r: float, n: int) -> Surface:
             xp_z.ravel(),
             xn_z.ravel(),
         )),
-        np.concatenate((
-            zp_n_x.ravel(),
-            zn_n_x.ravel(),
-            yp_n_x.ravel(),
-            yn_n_x.ravel(),
-            xp_n_x.ravel(),
-            xn_n_x.ravel(),
-        )),
-        np.concatenate((
-            zp_n_y.ravel(),
-            zn_n_y.ravel(),
-            yp_n_y.ravel(),
-            yn_n_y.ravel(),
-            xp_n_y.ravel(),
-            xn_n_y.ravel(),
-        )),
-        np.concatenate((
-            zp_n_z.ravel(),
-            zn_n_z.ravel(),
-            yp_n_z.ravel(),
-            yn_n_z.ravel(),
-            xp_n_z.ravel(),
-            xn_n_z.ravel(),
-        )),
+        Normals(
+            np.concatenate((
+                zp_n_x.ravel(),
+                zn_n_x.ravel(),
+                yp_n_x.ravel(),
+                yn_n_x.ravel(),
+                xp_n_x.ravel(),
+                xn_n_x.ravel(),
+            )),
+            np.concatenate((
+                zp_n_y.ravel(),
+                zn_n_y.ravel(),
+                yp_n_y.ravel(),
+                yn_n_y.ravel(),
+                xp_n_y.ravel(),
+                xn_n_y.ravel(),
+            )),
+            np.concatenate((
+                zp_n_z.ravel(),
+                zn_n_z.ravel(),
+                yp_n_z.ravel(),
+                yn_n_z.ravel(),
+                xp_n_z.ravel(),
+                xn_n_z.ravel(),
+            )),
+        ),
     )

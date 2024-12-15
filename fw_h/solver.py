@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class Solver:
     """Calculate the pressure at an observer using FW-H surface data."""
 
-    def __init__(self, config: ConfigSchema, source: SourceData):
+    def __init__(self, config: ConfigSchema, source: SourceData) -> None:
         logger.info("Initializing Solver object...")
         self.config = config
         self.source = source
@@ -31,7 +31,7 @@ class Solver:
         self.cos_theta = np.ndarray(0)
         self.p = np.zeros(0)
 
-    def _compute_r(self):
+    def _compute_r(self) -> None:
         """Calculate distance from each FW-H point to the observer."""
         logger.info(
             "Computing the distance from each point on the FW-H "
@@ -45,15 +45,9 @@ class Solver:
         self.r_hat_y = self.r_y / self.r
         self.r_hat_z = self.r_z / self.r
 
-    def _discretize_observer_time(self):
+    def _discretize_observer_time(self) -> None:
         """Discretize the observer time."""
         logger.info("Discretizing the observer time...")
-        if len(self.r) == 0:
-            raise RuntimeError(
-                "Cannot discretize time until r is calculated. Ensure"
-                "compute_r is run before discretize_observer_time()."
-            )
-
         t_start = (
             np.min(self.source.time_domain)
             + np.min(self.r) / self.config.solver.constants.c_0
@@ -70,25 +64,22 @@ class Solver:
         logger.debug("t_initial: %f", self.time_domain[0])
         logger.debug("t_final: %f", self.time_domain[-1])
 
-    def _compute_v_n(self):
+    def _compute_v_n(self) -> None:
         """Compute the normal velocity for each FW-H point."""
         logger.info(
             "Computing the normal velocity for each point on the FW-H "
             "surface over each source time step..."
         )
         self.v_n = (
-            self.source.fw_h_velocity_x * self.source.fw_h_surface.n_x
-            + self.source.fw_h_velocity_y * self.source.fw_h_surface.n_y
-            + self.source.fw_h_velocity_z * self.source.fw_h_surface.n_z
+            self.source.fw_h_velocity_x * self.source.fw_h_surface.normals.n_x
+            + self.source.fw_h_velocity_y
+            * self.source.fw_h_surface.normals.n_y
+            + self.source.fw_h_velocity_z
+            * self.source.fw_h_surface.normals.n_z
         )
 
-    def _compute_v_n_dot(self):
+    def _compute_v_n_dot(self) -> None:
         """Compute the source time derivative of the normal velocity."""
-        if len(self.v_n) == 0:
-            raise RuntimeError(
-                "Cannot compute source time derivative without v_n. Ensure "
-                "_compute_v_n() is run before _compute_v_n_dot()."
-            )
         logger.info(
             "Computing the source time derivative of the normal "
             "velocity for each point on the FW-H surface over the "
@@ -96,7 +87,7 @@ class Solver:
         )
         self.v_n_dot = np.gradient(self.v_n, self.source.time_domain, axis=0)
 
-    def _compute_p_dot(self):
+    def _compute_p_dot(self) -> None:
         """Compute the source time derivative of the pressure."""
         logger.info(
             "Computing the source time derivative of the pressure for "
@@ -107,18 +98,18 @@ class Solver:
             self.source.fw_h_pressure, self.source.time_domain, axis=0
         )
 
-    def _compute_cos_theta(self):
+    def _compute_cos_theta(self) -> None:
         """Compute cos(θ) for each point on the FW-H surface."""
         logger.info(
             "Computing the cos(θ) for each point on the FW-H surface..."
         )
         self.cos_theta = (
-            self.r_hat_x * self.source.fw_h_surface.n_x
-            + self.r_hat_y * self.source.fw_h_surface.n_y
-            + self.r_hat_z * self.source.fw_h_surface.n_z
+            self.r_hat_x * self.source.fw_h_surface.normals.n_x
+            + self.r_hat_y * self.source.fw_h_surface.normals.n_y
+            + self.r_hat_z * self.source.fw_h_surface.normals.n_z
         )
 
-    def compute(self):
+    def compute(self) -> None:
         """Compute the pressure at the observer surface over time."""
         self._compute_r()
         self._discretize_observer_time()
@@ -127,16 +118,17 @@ class Solver:
         self._compute_p_dot()
         self._compute_cos_theta()
 
-        # TODO: this edge length is being pulled from the source stuff.
         logger.info("Computing pressure from Formulation 1A in source time...")
-        dA = (2 * self.config.fw_h_surface.r / self.config.fw_h_surface.n) ** 2
+        cell_area = (
+            2 * self.config.fw_h_surface.r / self.config.fw_h_surface.n
+        ) ** 2
         p_t_tau = (
-            dA
+            cell_area
             / (4 * np.pi)
             * (self.config.solver.constants.rho_0 * self.v_n_dot / self.r)
         )
         p_l_tau = (
-            dA
+            cell_area
             / (4 * np.pi)
             * (
                 (

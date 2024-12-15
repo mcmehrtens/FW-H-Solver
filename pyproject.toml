@@ -27,23 +27,25 @@ fw-h = "fw_h.fw_h:main"
 
 
 [tool.ruff]
+target-version = "py313"
 exclude = [
     ".python-version",
     "input",
     "log",
     "output",
 ]
-
 line-length = 79
 
 
 [tool.ruff.lint]
-extend-select = [
-    "B",
-    "D",
-    "D417",
-    "I",
+select = [
+    "ALL",
 ]
+ignore = [
+    "COM812",
+    "ISC001",
+]
+
 
 
 [tool.ruff.lint.pydocstyle]
