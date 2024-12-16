@@ -1,4 +1,2 @@
 # Exclude these paths from language statistics
-config/** linguist-generated
-source/** linguist-generated
-tests/** linguist-generated
+source/** linguist-documentation
