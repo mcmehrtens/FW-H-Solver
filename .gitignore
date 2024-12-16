@@ -246,3 +246,8 @@ log/
 
 # macOS
 .DS_Store
+
+# Sphinx
+source/*.rst
+!source/index.rst
+!source/modules.rst
