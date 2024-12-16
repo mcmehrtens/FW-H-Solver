@@ -13,6 +13,11 @@ solver:
     c_0: 340.2    # [L * T^-1]
     rho_0: 1.225  # [M * L^-3]
   time_steps: 1000
+  observer:
+    point:
+      x: 40.1  # [L]
+      y: 42.7  # [L]
+      z: 31.4  # [L]
 source:
   point:
     x: 0  # [L]
@@ -28,17 +33,12 @@ source:
   time_domain:
     start_time: 0  # [T]
     end_time: 0.5  # [T]
-    time_steps: 2500
+    time_steps: 500
   fw_h_surface:
     point:
       x: 0  # [L]
       y: 0  # [L]
       z: 0  # [L]
     r: 10  # [L]
-    n: 50
-  observer:
-    point:
-      x: 40.1  # [L]
-      y: 42.7  # [L]
-      z: 31.4  # [L]
+    n: 25
 ...

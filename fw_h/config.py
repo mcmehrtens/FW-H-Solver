@@ -67,20 +67,27 @@ class Constants(BaseModel):
     rho_0: float = Field(description="The density of the fluid [M * L^-3].")
 
 
-class Solver(BaseModel):
-    """Configuration settings used by the solving routine."""
-
-    input: Input
-    constants: Constants
-    time_steps: int = Field(description="The number of observer time steps.")
-
-
 class Point(BaseModel):
     """Defines a point in 3D space."""
 
     x: float = Field(description="The x-coordinate value [L].")
     y: float = Field(description="The y-coordinate value [L].")
     z: float = Field(description="The z-coordinate value [L].")
+
+
+class Observer(BaseModel):
+    """Observer configuration."""
+
+    point: Point
+
+
+class Solver(BaseModel):
+    """Configuration settings used by the solving routine."""
+
+    input: Input
+    constants: Constants
+    time_steps: int = Field(description="The number of observer time steps.")
+    observer: Observer
 
 
 class TimeDomain(BaseModel):
@@ -104,12 +111,6 @@ class FWHSurface(BaseModel):
     )
 
 
-class Observer(BaseModel):
-    """Observer configuration."""
-
-    point: Point
-
-
 class Source(BaseModel):
     """Configuration settings used by the source generation routine."""
 
@@ -121,7 +122,6 @@ class Source(BaseModel):
     constants: Constants
     time_domain: TimeDomain
     fw_h_surface: FWHSurface
-    observer: Observer
 
 
 class ConfigSchema(BaseModel):

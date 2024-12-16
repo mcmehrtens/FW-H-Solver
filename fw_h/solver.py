@@ -7,31 +7,42 @@ import numpy as np
 from numpy.typing import NDArray
 
 from fw_h.config import ConfigSchema
+from fw_h.geometry import Surface
 from fw_h.source import SourceData
 
 logger = logging.getLogger(__name__)
 
 
 class Solver:
-    """Contains solution routines and data for the given source data."""
+    """Contains solution routines and data for the given source data.
+
+    Parameters
+    ----------
+    config
+        The parsed configuration object.
+    source
+        The SourceData object containing all the source pressure and
+        time data.
+
+    Attributes
+    ----------
+    config
+    source
+    """
 
     def __init__(self, config: ConfigSchema, source: SourceData) -> None:
         logger.info("Initializing Solver object...")
         self.config = config
         self.source = source
-        self.r_x = np.ndarray(0, dtype=np.float64)
-        self.r_y = np.ndarray(0, dtype=np.float64)
-        self.r_z = np.ndarray(0, dtype=np.float64)
-        self.r = np.ndarray(0, dtype=np.float64)
-        self.r_hat_x = np.ndarray(0, dtype=np.float64)
-        self.r_hat_y = np.ndarray(0, dtype=np.float64)
-        self.r_hat_z = np.ndarray(0, dtype=np.float64)
-        self.time_domain = np.ndarray(0, dtype=np.float64)
-        self.v_n = np.ndarray(np.ndarray(0, dtype=np.float64))
-        self.v_n_dot = np.ndarray(np.ndarray(0, dtype=np.float64))
-        self.p_dot = np.ndarray(np.ndarray(0, dtype=np.float64))
-        self.cos_theta = np.ndarray(0, dtype=np.float64)
-        self.p = np.ndarray(np.ndarray(0, dtype=np.float64))
+        self._mesh_observer()
+
+    def _mesh_observer(self) -> None:
+        """Mesh the observer surface."""
+        self.observer_surface = Surface(
+            np.array([self.config.solver.observer.point.x], dtype=np.float64),
+            np.array([self.config.solver.observer.point.y], dtype=np.float64),
+            np.array([self.config.solver.observer.point.z], dtype=np.float64),
+        )
 
     def _compute_r(self) -> None:
         """Calculate distance from each FW-H point to the observer."""
@@ -39,9 +50,9 @@ class Solver:
             "Computing the distance from each point on the FW-H "
             "surface to the observer (r)..."
         )
-        self.r_x = self.source.observer_surface.x - self.source.fw_h_surface.x
-        self.r_y = self.source.observer_surface.y - self.source.fw_h_surface.y
-        self.r_z = self.source.observer_surface.z - self.source.fw_h_surface.z
+        self.r_x = self.observer_surface.x - self.source.surface.x
+        self.r_y = self.observer_surface.y - self.source.surface.y
+        self.r_z = self.observer_surface.z - self.source.surface.z
         self.r = np.sqrt(self.r_x**2 + self.r_y**2 + self.r_z**2)
         self.r_hat_x = self.r_x / self.r
         self.r_hat_y = self.r_y / self.r
@@ -73,11 +84,9 @@ class Solver:
             "surface over each source time step..."
         )
         self.v_n = (
-            self.source.fw_h_velocity_x * self.source.fw_h_surface.normals.n_x
-            + self.source.fw_h_velocity_y
-            * self.source.fw_h_surface.normals.n_y
-            + self.source.fw_h_velocity_z
-            * self.source.fw_h_surface.normals.n_z
+            self.source.velocity_x * self.source.surface.normals.n_x
+            + self.source.velocity_y * self.source.surface.normals.n_y
+            + self.source.velocity_z * self.source.surface.normals.n_z
         )
 
     def _compute_v_n_dot(self) -> None:
@@ -97,7 +106,7 @@ class Solver:
             "domain..."
         )
         self.p_dot = np.gradient(
-            self.source.fw_h_pressure, self.source.time_domain, axis=0
+            self.source.pressure, self.source.time_domain, axis=0
         )
 
     def _compute_cos_theta(self) -> None:
@@ -106,9 +115,9 @@ class Solver:
             "Computing the cos(θ) for each point on the FW-H surface..."
         )
         self.cos_theta = (
-            self.r_hat_x * self.source.fw_h_surface.normals.n_x
-            + self.r_hat_y * self.source.fw_h_surface.normals.n_y
-            + self.r_hat_z * self.source.fw_h_surface.normals.n_z
+            self.r_hat_x * self.source.surface.normals.n_x
+            + self.r_hat_y * self.source.surface.normals.n_y
+            + self.r_hat_z * self.source.surface.normals.n_z
         )
 
     def _convert_source_to_observer_pressure(
@@ -163,10 +172,10 @@ class Solver:
         self._compute_cos_theta()
 
         logger.info("Computing pressure from Formulation 1A in source time...")
-        fw_h_surface_r = np.max(self.source.fw_h_surface.x) - np.min(
-            self.source.fw_h_surface.x
+        fw_h_surface_r = np.max(self.source.surface.x) - np.min(
+            self.source.surface.x
         )
-        fw_h_surface_n = np.sqrt(len(self.source.fw_h_surface.x) / 6)
+        fw_h_surface_n = np.sqrt(len(self.source.surface.x) / 6)
         cell_area = (2 * fw_h_surface_r / fw_h_surface_n) ** 2
 
         logger.debug("Calculating the thickness term...")
@@ -186,7 +195,7 @@ class Solver:
                     * self.cos_theta
                     / (self.config.solver.constants.c_0 * self.r)
                 )
-                + (self.source.fw_h_pressure * self.cos_theta / self.r**2)
+                + (self.source.pressure * self.cos_theta / self.r**2)
             )
         )
 

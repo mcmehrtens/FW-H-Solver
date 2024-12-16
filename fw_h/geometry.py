@@ -68,7 +68,7 @@ def generate_fw_h_surface(r: float, n: int) -> Surface:
         Object representing the cuboid FW-H surface
 
     """
-    logger.info("Meshing FW-H surface...")
+    logger.info("Meshing cube surface...")
     delta = 2 * r / n
     logger.debug("Mesh cell length: %f [L]", delta)
     logger.debug("Number of points: %d", 6 * n**2)

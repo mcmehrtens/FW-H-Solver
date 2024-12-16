@@ -14,6 +14,7 @@ from fw_h.config import (
 )
 from fw_h.solver import Solver
 from fw_h.source import SourceData
+from fw_h.visualize import animate_surface_pressure
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -124,12 +125,16 @@ def source_routine(
     """
     logger.info("Beginning source generation routine...")
     source = SourceData(config)
-    source.mesh()
-    source.compute_source_description()
-    source.compute()
+    source.calculate_pressure()
+    source.calculate_velocity()
     if write:
         logger.info("Beginning source writing routine...")
-        source.write()
+        exclude = ("velocity_potential",)
+        source.write(exclude)
+
+    animate_surface_pressure(
+        source.surface, source.time_domain, source.pressure
+    )
 
 
 def solver_routine(logger: logging.Logger, config: ConfigSchema) -> None:
