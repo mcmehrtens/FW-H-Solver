@@ -1,2 +1,3 @@
 # Exclude these paths from language statistics
-source/** linguist-documentation
+Makefile linguist-documentation
+make.bat linguist-documentation
