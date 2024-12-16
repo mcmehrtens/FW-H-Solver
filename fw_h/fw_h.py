@@ -125,7 +125,7 @@ def source_routine(
     logger.info("Beginning source generation routine...")
     source = SourceData(config)
     source.mesh()
-    source.compute_source_functions()
+    source.compute_source_description()
     source.compute()
     if write:
         logger.info("Beginning source writing routine...")

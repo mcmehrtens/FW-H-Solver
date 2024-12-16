@@ -12,15 +12,15 @@ solver:
   constants:
     c_0: 340.2    # [L * T^-1]
     rho_0: 1.225  # [M * L^-3]
-  time_steps: 2500
+  time_steps: 1000
 source:
   point:
     x: 0  # [L]
     y: 0  # [L]
     z: 0  # [L]
-  description: monopole
+  description: dipole
   shape: sin
-  amplitude: 5e4
+  amplitude: 1
   frequency: 300  # [T^-1]
   constants:
     c_0: 340.2    # [L * T^-1]
@@ -34,7 +34,7 @@ source:
       x: 0  # [L]
       y: 0  # [L]
       z: 0  # [L]
-    r: 7.5  # [L]
+    r: 10  # [L]
     n: 50
   observer:
     point:

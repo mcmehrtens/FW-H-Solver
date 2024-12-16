@@ -4,6 +4,7 @@ import datetime
 import logging
 from collections.abc import Callable
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 import sympy as sp
@@ -25,99 +26,377 @@ from fw_h.geometry import (
 logger = logging.getLogger(__name__)
 
 
-def evaluate_monopole_source_functions(
-    source_shape_fn: sp.FunctionClass,
-) -> tuple[Callable, Callable, Callable, Callable, Callable]:
-    """Symbolically evaluate monopole source functions.
+class SymbolicSourceParams(NamedTuple):
+    """Encapsulates symbolic source parameters.
 
-    Calculates the velocity potential field function, pressure field
-    function, and the velocity field function. These functions are
-    evaluated symbolically and then lambdified to use for NumPy.
+    Attributes
+    ----------
+    x, y, z
+        The observer or position of interest in 3D space.
+    x_0, y_0, z_0
+        The source position in 3D space.
+    t
+        The source time.
+    amplitude
+        The amplitude of the source shape function.
+    omega
+        The frequency of the source shape function.
+    c_0
+        The speed of sound in the fluid.
+    rho_0
+        The density of the fluid.
+    """
+
+    x: sp.Symbol
+    y: sp.Symbol
+    z: sp.Symbol
+    x_0: sp.Symbol
+    y_0: sp.Symbol
+    z_0: sp.Symbol
+    t: sp.Symbol
+    amplitude: sp.Symbol
+    omega: sp.Symbol
+    c_0: sp.Symbol
+    rho_0: sp.Symbol
+
+
+class NumericalSourceParams(NamedTuple):
+    """Encapsulates numerical source parameters.
+
+    Attributes
+    ----------
+    x, y, z
+        The observer or position of interest in 3D space.
+    x_0, y_0, z_0
+        The source position in 3D space.
+    t
+        The source time.
+    amplitude
+        The amplitude of the source shape function.
+    omega
+        The frequency of the source shape function.
+    c_0
+        The speed of sound in the fluid.
+    rho_0
+        The density of the fluid.
+    """
+
+    x: NDArray[NDArray[np.float64]]
+    y: NDArray[NDArray[np.float64]]
+    z: NDArray[NDArray[np.float64]]
+    x_0: float
+    y_0: float
+    z_0: float
+    t: NDArray[NDArray[np.float64]]
+    amplitude: float
+    omega: float
+    c_0: float
+    rho_0: float
+
+
+class AnalyticalSource:
+    """Abstracts the derivation of different analytical sound sources.
+
+    Represents the common functions between monopoles, dipoles, and
+    longitudinal quadrupoles. It's unclear whether this will need to be
+    modified to accommodate non-axisymmetric sources.
+
+    Child classes must implement the velocity potential function.
 
     Parameters
     ----------
     source_shape_fn
-        The SymPy function to use for the shape of the source
-        perturbations.
+        The SymPy function which defines the source perturbation shape.
 
-    Returns
-    -------
-    Callable
-        The velocity potential field function.
-    Callable
-        The pressure field function.
-    Callable
-        The velocity field (x-component) function.
-    Callable
-        The velocity field (y-component) function.
-    Callable
-        The velocity field (z-component) function.
-
+    Attributes
+    ----------
+    source_shape_fn
     """
-    logger.info("Calculating analytical source functions symbolically...")
-    x, y, z, x_0, y_0, z_0, t, amplitude, omega, c_0, rho_0 = sp.symbols(
-        "x y z x_0 y_0 z_0 t amplitude omega c_0 rho_0"
-    )
 
-    r = sp.sqrt((x - x_0) ** 2 + (y - y_0) ** 2 + (z - z_0) ** 2)
-    phi = -amplitude * source_shape_fn(omega * (t - r / c_0)) / (4 * sp.pi * r)
-    logger.debug(
-        "phi:\n%s\n%s",
-        sp.latex(phi),
-        sp.pretty(phi, use_unicode=True, wrap_line=False),
-    )
-    p = -rho_0 * sp.diff(phi, t)
-    logger.debug(
-        "p:\n%s\n%s",
-        sp.latex(p),
-        sp.pretty(p, use_unicode=True, wrap_line=False),
-    )
-    v_x = sp.diff(phi, x)
-    logger.debug(
-        "v_x:\n%s\n%s",
-        sp.latex(v_x),
-        sp.pretty(v_x, use_unicode=True, wrap_line=False),
-    )
-    v_y = sp.diff(phi, y)
-    logger.debug(
-        "v_y:\n%s\n%s",
-        sp.latex(v_y),
-        sp.pretty(v_y, use_unicode=True, wrap_line=False),
-    )
-    v_z = sp.diff(phi, z)
-    logger.debug(
-        "v_z:\n%s\n%s",
-        sp.latex(v_z),
-        sp.pretty(v_z, use_unicode=True, wrap_line=False),
-    )
+    def __init__(
+        self, source_shape_fn: Callable[[sp.Basic], sp.Basic]
+    ) -> None:
+        self.source_shape_fn = source_shape_fn
+        self._params = SymbolicSourceParams(
+            x=sp.Symbol("x"),
+            y=sp.Symbol("y"),
+            z=sp.Symbol("z"),
+            x_0=sp.Symbol("x_0"),
+            y_0=sp.Symbol("y_0"),
+            z_0=sp.Symbol("z_0"),
+            t=sp.Symbol("t"),
+            amplitude=sp.Symbol("amplitude"),
+            omega=sp.Symbol("omega"),
+            c_0=sp.Symbol("c_0"),
+            rho_0=sp.Symbol("rho_0"),
+        )
+        self._setup_functions()
 
-    logger.info("Lambdifying symbolic functions...")
-    phi_fn = lambdify(
-        (x, y, z, x_0, y_0, z_0, t, amplitude, omega, c_0),
-        phi,
-        modules="numpy",
-    )
-    p_fn = lambdify(
-        (x, y, z, x_0, y_0, z_0, t, amplitude, omega, c_0, rho_0),
-        p,
-        modules="numpy",
-    )
-    v_x_fn = lambdify(
-        (x, y, z, x_0, y_0, z_0, t, amplitude, omega, c_0),
-        v_x,
-        modules="numpy",
-    )
-    v_y_fn = lambdify(
-        (x, y, z, x_0, y_0, z_0, t, amplitude, omega, c_0),
-        v_y,
-        modules="numpy",
-    )
-    v_z_fn = lambdify(
-        (x, y, z, x_0, y_0, z_0, t, amplitude, omega, c_0),
-        v_z,
-        modules="numpy",
-    )
-    return phi_fn, p_fn, v_x_fn, v_y_fn, v_z_fn
+    def _velocity_potential_fn(self) -> sp.Basic:
+        err = "Subclasses must implement this method."
+        raise NotImplementedError(err)
+
+    def _setup_functions(self) -> None:
+        """Symbolically calculate the physical source functions.
+
+        Symbolically calculates the velocity potential, pressure, and
+        surface velocity functions for a given source. Once calculated,
+        it lambdifies these functions for use with NumPy.
+        """
+        logger.info("Calculating analytical source functions symbolically...")
+        phi = self._velocity_potential_fn()
+        p = -self._params.rho_0 * sp.diff(phi, self._params.t)
+        v_x = sp.diff(phi, self._params.x)
+        v_y = sp.diff(phi, self._params.y)
+        v_z = sp.diff(phi, self._params.z)
+
+        logger.debug(
+            "Symbolic velocity potential (phi):\n%s\n%s",
+            sp.pretty(phi, use_unicode=True, wrap_line=False),
+            sp.latex(phi),
+        )
+        logger.debug(
+            "Symbolic pressure (p):\n%s\n%s",
+            sp.pretty(p, use_unicode=True, wrap_line=False),
+            sp.latex(p),
+        )
+        logger.debug(
+            "Symbolic velocity in x (v_x):\n%s\n%s",
+            sp.pretty(v_x, use_unicode=True, wrap_line=False),
+            sp.latex(v_x),
+        )
+        logger.debug(
+            "Symbolic velocity in y (v_y):\n%s\n%s",
+            sp.pretty(v_y, use_unicode=True, wrap_line=False),
+            sp.latex(v_y),
+        )
+        logger.debug(
+            "Symbolic velocity in z (v_z):\n%s\n%s",
+            sp.pretty(v_z, use_unicode=True, wrap_line=False),
+            sp.latex(v_z),
+        )
+
+        logger.info("Lambdifying symbolic functions...")
+        self._phi_fn = lambdify(self._params, phi, modules="numpy")
+        self._p_fn = lambdify(self._params, p, modules="numpy")
+        self._v_x_fn = lambdify(self._params, v_x, modules="numpy")
+        self._v_y_fn = lambdify(self._params, v_y, modules="numpy")
+        self._v_z_fn = lambdify(self._params, v_z, modules="numpy")
+
+    def velocity_potential(
+        self, params: NumericalSourceParams
+    ) -> NDArray[NDArray[np.float64]]:
+        """Calculate the velocity potential.
+
+        Parameters
+        ----------
+        params
+            The arguments of the velocity potential function.
+
+        Returns
+        -------
+        NDArray[NDArray[np.float64]]
+            The velocity potential matrix. Each row corresponds to a
+            time step in params.t. Each column i corresponds to a point
+            (params.x[i], params.y[i], params.z[i]).
+        """
+        return self._phi_fn(
+            params.x,
+            params.y,
+            params.z,
+            params.x_0,
+            params.y_0,
+            params.z_0,
+            params.t,
+            params.amplitude,
+            params.omega,
+            params.c_0,
+            0,
+        )
+
+    def pressure(
+        self, params: NumericalSourceParams
+    ) -> NDArray[NDArray[np.float64]]:
+        """Calculate the pressure.
+
+        Parameters
+        ----------
+        params
+            The arguments of the pressure function.
+
+        Returns
+        -------
+        NDArray[NDArray[np.float64]]
+            The pressure matrix. Each row corresponds to a time step in
+            params.t. Each column i corresponds to a point
+            (params.x[i], params.y[i], params.z[i]).
+        """
+        return self._p_fn(
+            params.x,
+            params.y,
+            params.z,
+            params.x_0,
+            params.y_0,
+            params.z_0,
+            params.t,
+            params.amplitude,
+            params.omega,
+            params.c_0,
+            params.rho_0,
+        )
+
+    def velocity_x(
+        self, params: NumericalSourceParams
+    ) -> NDArray[NDArray[np.float64]]:
+        """Calculate the velocity in the x-direction.
+
+        Parameters
+        ----------
+        params
+            The arguments of the velocity function in the x-direction.
+
+        Returns
+        -------
+        NDArray[NDArray[np.float64]]
+            The x-component of the velocity matrix. Each row corresponds
+            to a time step in params.t. Each column i corresponds to a
+            point (params.x[i], params.y[i], params.z[i]).
+        """
+        return self._v_x_fn(
+            params.x,
+            params.y,
+            params.z,
+            params.x_0,
+            params.y_0,
+            params.z_0,
+            params.t,
+            params.amplitude,
+            params.omega,
+            params.c_0,
+            0,
+        )
+
+    def velocity_y(
+        self, params: NumericalSourceParams
+    ) -> NDArray[NDArray[np.float64]]:
+        """Calculate the velocity in the y-direction.
+
+        Parameters
+        ----------
+        params
+            The arguments of the velocity function in the y-direction.
+
+        Returns
+        -------
+        NDArray[NDArray[np.float64]]
+            The y-component of the velocity matrix. Each row corresponds
+            to a time step in params.t. Each column i corresponds to a
+            point (params.x[i], params.y[i], params.z[i]).
+        """
+        return self._v_y_fn(
+            params.x,
+            params.y,
+            params.z,
+            params.x_0,
+            params.y_0,
+            params.z_0,
+            params.t,
+            params.amplitude,
+            params.omega,
+            params.c_0,
+            0,
+        )
+
+    def velocity_z(
+        self, params: NumericalSourceParams
+    ) -> NDArray[NDArray[np.float64]]:
+        """Calculate the velocity in the z-direction.
+
+        Parameters
+        ----------
+        params
+            The arguments of the velocity function in the z-direction.
+
+        Returns
+        -------
+        NDArray[NDArray[np.float64]]
+            The z-component of the velocity matrix. Each row corresponds
+            to a time step in params.t. Each column i corresponds to a
+            point (params.x[i], params.y[i], params.z[i]).
+        """
+        return self._v_z_fn(
+            params.x,
+            params.y,
+            params.z,
+            params.x_0,
+            params.y_0,
+            params.z_0,
+            params.t,
+            params.amplitude,
+            params.omega,
+            params.c_0,
+            0,
+        )
+
+
+class MonopoleSource(AnalyticalSource):
+    """Calculate monopole source functions."""
+
+    def _velocity_potential_fn(self) -> sp.Basic:
+        """Symbolically calculate the velocity potential.
+
+        Returns
+        -------
+        sp.Basic
+            The velocity potential function as a symbolic expression.
+        """
+        r = sp.sqrt(
+            (self._params.x - self._params.x_0) ** 2
+            + (self._params.y - self._params.y_0) ** 2
+            + (self._params.z - self._params.z_0) ** 2
+        )
+        return (
+            self._params.amplitude
+            * self.source_shape_fn(
+                self._params.omega * (self._params.t - r / self._params.c_0)
+            )
+            / r
+        )
+
+
+class DipoleSource(AnalyticalSource):
+    """Calculate dipole source functions."""
+
+    def _velocity_potential_fn(self) -> sp.Basic:
+        """Symbolically calculate the velocity potential.
+
+        Returns
+        -------
+        sp.Basic
+            The velocity potential function as a symbolic expression.
+        """
+        r = sp.symbols("r")
+        r_expr = sp.sqrt(
+            (self._params.x - self._params.x_0) ** 2
+            + (self._params.y - self._params.y_0) ** 2
+            + (self._params.z - self._params.z_0) ** 2
+        )
+
+        phi = (
+            self._params.z
+            / r
+            * sp.diff(
+                self._params.amplitude
+                * self.source_shape_fn(
+                    self._params.omega
+                    * (self._params.t - r / self._params.c_0)
+                )
+                / r,
+                r,
+            )
+        )
+
+        return phi.subs(r, r_expr)
 
 
 class SourceData:
@@ -141,8 +420,6 @@ class SourceData:
         The observer points to calculate the theoretical solution for.
     time_domain
         The time steps in the source time domain.
-    source_shape_function
-        The shape of the pressure perturbations caused by the source.
     fw_h_velocity_potential
         The velocity potential on the FW-H surface calculated over time.
         Each row corresponds to a time step. Each column corresponds to
@@ -181,12 +458,8 @@ class SourceData:
             np.ndarray(0, dtype=np.float64),
         )
         self.time_domain = np.ndarray(0, dtype=np.float64)
-        self.source_shape_function: sp.FunctionClass | None = None
-        self._velocity_potential_fn: Callable | None = None
-        self._pressure_fn: Callable | None = None
-        self._velocity_x_fn: Callable | None = None
-        self._velocity_y_fn: Callable | None = None
-        self._velocity_z_fn: Callable | None = None
+        self._source_shape_function: sp.FunctionClass | None = None
+        self._analytical_source: AnalyticalSource | None = None
         self.fw_h_velocity_potential = np.ndarray(
             np.ndarray(0, dtype=np.float64)
         )
@@ -226,80 +499,39 @@ class SourceData:
             dtype=np.float64,
         )
 
-    def _generate_source_functions(
-        self,
-    ) -> tuple[Callable, Callable, Callable, Callable, Callable]:
-        """Call the respective source generation function generator.
-
-        Based on whether the type of the analytical source, call a
-        function that will generate analytical, lambdified functions for
-        velocity potential, pressure, and velocity. These functions are
-        used to calculate the numerical values on the source surfaces.
-
-        Returns
-        -------
-        Callable
-            The velocity potential field function.
-        Callable
-            The pressure field function.
-        Callable
-            The velocity field (x-component) function.
-        Callable
-            The velocity field (y-component) function.
-        Callable
-            The velocity field (z-component) function.
-
-        """
-        source = self.config.source.description
-        match source:
-            case SourceType.MONOPOLE:
-                functions = evaluate_monopole_source_functions(
-                    self.source_shape_function
-                )
-            case _:
-                err = f"Shape function '{source}' is not implemented."
-                raise NotImplementedError(err)
-        return functions
-
-    def compute_source_functions(self) -> None:
+    def compute_source_description(self) -> None:
         """Compute the source shape functions and the source functions.
 
         These source functions include the velocity potential, pressure,
         and velocity functions.
 
         """
-        self.source_shape_function = parse_shape_function(
+        self._source_shape_function = parse_shape_function(
             self.config.source.shape
         )
-        (
-            self._velocity_potential_fn,
-            self._pressure_fn,
-            self._velocity_x_fn,
-            self._velocity_y_fn,
-            self._velocity_z_fn,
-        ) = self._generate_source_functions()
 
-    def compute(self) -> None:
-        """Compute the source data."""
-        logger.info("Beginning source computation...")
-        self.calculate_fw_h_velocity_potential()
-        self.calculate_observer_velocity_potential()
+        source = self.config.source.description
+        match source:
+            case SourceType.MONOPOLE:
+                self._analytical_source = MonopoleSource(
+                    self._source_shape_function
+                )
+            case SourceType.DIPOLE:
+                self._analytical_source = DipoleSource(
+                    self._source_shape_function
+                )
+            case _:
+                err = f"Shape function '{source}' is not implemented."
+                raise NotImplementedError(err)
 
-        self.calculate_fw_h_pressure()
-        self.calculate_observer_pressure()
-
-        (self.fw_h_velocity_x, self.fw_h_velocity_y, self.fw_h_velocity_z) = (
-            self.calculate_velocity()
-        )
-
-    def calculate_fw_h_velocity_potential(self) -> None:
+    def _calculate_fw_h_velocity_potential(self) -> None:
         """Calculate the velocity potential over the FW-H surface."""
         logger.info("Calculating velocity potential over the FW-H surface...")
         self.fw_h_velocity_potential = self._calculate_velocity_potential(
             self.fw_h_surface
         )
 
-    def calculate_observer_velocity_potential(self) -> None:
+    def _calculate_observer_velocity_potential(self) -> None:
         """Calculate velocity potential over the observer surface."""
         logger.info(
             "Calculating velocity potential over the observer surface..."
@@ -325,25 +557,27 @@ class SourceData:
             column corresponds to the respective point on the surface.
 
         """
-        return self._velocity_potential_fn(
-            surface.x[:, np.newaxis],
-            surface.y[:, np.newaxis],
-            surface.z[:, np.newaxis],
-            self.config.source.point.x,
-            self.config.source.point.y,
-            self.config.source.point.z,
-            self.time_domain[np.newaxis, :],
-            self.config.source.amplitude,
-            self.config.source.frequency,
-            self.config.source.constants.c_0,
-        ).T
+        data = NumericalSourceParams(
+            x=surface.x[:, np.newaxis],
+            y=surface.y[:, np.newaxis],
+            z=surface.z[:, np.newaxis],
+            x_0=self.config.source.point.x,
+            y_0=self.config.source.point.y,
+            z_0=self.config.source.point.z,
+            t=self.time_domain[np.newaxis, :],
+            amplitude=self.config.source.amplitude,
+            omega=self.config.source.frequency,
+            c_0=self.config.source.constants.c_0,
+            rho_0=0,
+        )
+        return self._analytical_source.velocity_potential(data).T
 
-    def calculate_fw_h_pressure(self) -> None:
+    def _calculate_fw_h_pressure(self) -> None:
         """Calculate the pressure over the FW-H surface."""
         logger.info("Calculating pressure over the FW-H surface...")
         self.fw_h_pressure = self._calculate_pressure(self.fw_h_surface)
 
-    def calculate_observer_pressure(self) -> None:
+    def _calculate_observer_pressure(self) -> None:
         """Calculate the pressure over the observer surface."""
         logger.info("Calculating pressure over the observer surface...")
         self.observer_pressure = self._calculate_pressure(self.fw_h_surface)
@@ -365,21 +599,22 @@ class SourceData:
             column corresponds to the respective point on the surface.
 
         """
-        return self._pressure_fn(
-            surface.x[:, np.newaxis],
-            surface.y[:, np.newaxis],
-            surface.z[:, np.newaxis],
-            self.config.source.point.x,
-            self.config.source.point.y,
-            self.config.source.point.z,
-            self.time_domain[np.newaxis, :],
-            self.config.source.amplitude,
-            self.config.source.frequency,
-            self.config.source.constants.c_0,
-            self.config.source.constants.rho_0,
-        ).T
+        data = NumericalSourceParams(
+            x=surface.x[:, np.newaxis],
+            y=surface.y[:, np.newaxis],
+            z=surface.z[:, np.newaxis],
+            x_0=self.config.source.point.x,
+            y_0=self.config.source.point.y,
+            z_0=self.config.source.point.z,
+            t=self.time_domain[np.newaxis, :],
+            amplitude=self.config.source.amplitude,
+            omega=self.config.source.frequency,
+            c_0=self.config.source.constants.c_0,
+            rho_0=self.config.source.constants.rho_0,
+        )
+        return self._analytical_source.pressure(data).T
 
-    def calculate_velocity(
+    def _calculate_velocity(
         self,
     ) -> tuple[
         NDArray[NDArray[np.float64]],
@@ -401,25 +636,37 @@ class SourceData:
 
         """
         logger.info("Calculating velocity over FW-H surface...")
-
-        def calculate_velocity(fn: Callable) -> NDArray[NDArray[np.float64]]:
-            return fn(
-                self.fw_h_surface.x[:, np.newaxis],
-                self.fw_h_surface.y[:, np.newaxis],
-                self.fw_h_surface.z[:, np.newaxis],
-                self.config.source.point.x,
-                self.config.source.point.y,
-                self.config.source.point.z,
-                self.time_domain[np.newaxis, :],
-                self.config.source.amplitude,
-                self.config.source.frequency,
-                self.config.source.constants.c_0,
-            ).T
+        data = NumericalSourceParams(
+            x=self.fw_h_surface.x[:, np.newaxis],
+            y=self.fw_h_surface.y[:, np.newaxis],
+            z=self.fw_h_surface.z[:, np.newaxis],
+            x_0=self.config.source.point.x,
+            y_0=self.config.source.point.y,
+            z_0=self.config.source.point.z,
+            t=self.time_domain[np.newaxis, :],
+            amplitude=self.config.source.amplitude,
+            omega=self.config.source.frequency,
+            c_0=self.config.source.constants.c_0,
+            rho_0=0,
+        )
 
         return (
-            calculate_velocity(self._velocity_x_fn),
-            calculate_velocity(self._velocity_y_fn),
-            calculate_velocity(self._velocity_z_fn),
+            self._analytical_source.velocity_x(data).T,
+            self._analytical_source.velocity_y(data).T,
+            self._analytical_source.velocity_z(data).T,
+        )
+
+    def compute(self) -> None:
+        """Compute the source data."""
+        logger.info("Beginning source computation...")
+        self._calculate_fw_h_velocity_potential()
+        self._calculate_observer_velocity_potential()
+
+        self._calculate_fw_h_pressure()
+        self._calculate_observer_pressure()
+
+        (self.fw_h_velocity_x, self.fw_h_velocity_y, self.fw_h_velocity_z) = (
+            self._calculate_velocity()
         )
 
     def write(self) -> None:
