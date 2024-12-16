@@ -92,3 +92,37 @@ def animate_surface_pressure(
     )
 
     plt.show()
+
+
+def plot_observer_pressure(
+    time: NDArray[np.float64],
+    pressure: NDArray[np.float64],
+    validation_pressure: NDArray[np.float64] = None,
+) -> None:
+    """Plot the calculated observer pressure against the analytical.
+
+    Parameters
+    ----------
+    time
+        The time domain.
+    pressure
+        The calculated observer pressure.
+    validation_pressure
+        The analytical observer pressure.
+    """
+    plt.figure()
+    plt.plot(time, pressure, label="Observer Pressure")
+    if validation_pressure is not None:
+        plt.plot(
+            time,
+            validation_pressure,
+            label="Analytical Observer Pressure",
+            linestyle="--",
+            color="red",
+        )
+    plt.grid()
+    plt.xlabel("Time [s]")
+    plt.ylabel("Pressure [Pa]")
+    plt.title("Observer Pressure vs. Time")
+    plt.legend()
+    plt.show()

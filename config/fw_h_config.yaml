@@ -8,11 +8,11 @@ global_config:
     output_file_timestamp: "%Y%m%d-%H.%M.%S"
 solver:
   input:
-    data_file_path: /Users/mcmehrtens/src/fw-h-solver/input/20241211-12.46.09-fw-h.npz
+    data_file_path: /Users/mcmehrtens/src/fw-h-solver/input/monopole.npz
   constants:
     c_0: 340.2    # [L * T^-1]
     rho_0: 1.225  # [M * L^-3]
-  time_steps: 1000
+  time_steps: 3000
   observer:
     point:
       x: 40.1  # [L]
@@ -32,8 +32,8 @@ source:
     rho_0: 1.225  # [M * L^-3]
   time_domain:
     start_time: 0  # [T]
-    end_time: 0.5  # [T]
-    time_steps: 500
+    end_time: 0.25  # [T]
+    time_steps: 2500
   fw_h_surface:
     point:
       x: 0  # [L]

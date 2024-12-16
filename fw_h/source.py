@@ -457,6 +457,12 @@ class SourceData:
             rho_0=self.config.source.constants.rho_0,
         )
 
+        self.velocity_potential = np.array([[0]], dtype=np.float64)
+        self.pressure = np.array([[0]], dtype=np.float64)
+        self.velocity_x = np.array([[0]], dtype=np.float64)
+        self.velocity_y = np.array([[0]], dtype=np.float64)
+        self.velocity_z = np.array([[0]], dtype=np.float64)
+
     def _mesh(self) -> None:
         """Mesh the surfaces and discretize the time domain.
 
@@ -490,11 +496,11 @@ class SourceData:
         source = self.config.source.description
         match source:
             case SourceType.MONOPOLE:
-                self._analytical_source = MonopoleSource(
+                self.analytical_source = MonopoleSource(
                     self._source_shape_function
                 )
             case SourceType.DIPOLE:
-                self._analytical_source = DipoleSource(
+                self.analytical_source = DipoleSource(
                     self._source_shape_function
                 )
             case _:
@@ -504,21 +510,21 @@ class SourceData:
     def calculate_velocity_potential(self) -> None:
         """Calculate the velocity potential."""
         logger.info("Calculating velocity potential...")
-        self.velocity_potential = self._analytical_source.velocity_potential(
+        self.velocity_potential = self.analytical_source.velocity_potential(
             self.data
         ).T
 
     def calculate_pressure(self) -> None:
         """Calculate the pressure."""
         logger.info("Calculating pressure...")
-        self.pressure = self._analytical_source.pressure(self.data).T
+        self.pressure = self.analytical_source.pressure(self.data).T
 
     def calculate_velocity(self) -> None:
         """Calculate the velocity."""
         logger.info("Calculating velocity...")
-        self.velocity_x = self._analytical_source.velocity_x(self.data).T
-        self.velocity_y = self._analytical_source.velocity_y(self.data).T
-        self.velocity_z = self._analytical_source.velocity_z(self.data).T
+        self.velocity_x = self.analytical_source.velocity_x(self.data).T
+        self.velocity_y = self.analytical_source.velocity_y(self.data).T
+        self.velocity_z = self.analytical_source.velocity_z(self.data).T
 
     def write(self, *exclude: tuple[str, ...]) -> None:
         """Write relevant data to a NumPy .npz archive.
@@ -546,10 +552,10 @@ class SourceData:
         }
         arrays = {k: v for k, v in arrays.items() if k not in exclude}
 
-        output_dir = self.config.solver.output.output_dir
+        output_dir = self.config.global_config.output.output_dir
 
         timestamp = datetime.datetime.now(tz=datetime.UTC).strftime(
-            self.config.solver.output.output_file_timestamp
+            self.config.global_config.output.output_file_timestamp
         )
 
         config_path = Path(output_dir) / f"{timestamp}-fw-h-config.yaml"
@@ -581,9 +587,9 @@ class SourceData:
             logger.debug("Loading surface mesh...")
             normals = (
                 Normals(
-                    source_data["fw_h_surface_n_x"],
-                    source_data["fw_h_surface_n_y"],
-                    source_data["fw_h_surface_n_z"],
+                    source_data["surface_n_x"],
+                    source_data["surface_n_y"],
+                    source_data["surface_n_z"],
                 )
                 if "surface_n_x" in source_data
                 and "surface_n_y" in source_data
@@ -592,9 +598,9 @@ class SourceData:
             )
 
             self.surface = Surface(
-                source_data["fw_h_surface_x"],
-                source_data["fw_h_surface_y"],
-                source_data["fw_h_surface_z"],
+                source_data["surface_x"],
+                source_data["surface_y"],
+                source_data["surface_z"],
                 normals,
             )
 

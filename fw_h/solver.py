@@ -1,14 +1,17 @@
 """Implement the FW-H equation solver using Farassat's Formula 1A."""
 
+import datetime
 import logging
 import math
+from pathlib import Path
 
 import numpy as np
+import yaml
 from numpy.typing import NDArray
 
 from fw_h.config import ConfigSchema
 from fw_h.geometry import Surface
-from fw_h.source import SourceData
+from fw_h.source import NumericalSourceParams, SourceData
 
 logger = logging.getLogger(__name__)
 
@@ -176,30 +179,24 @@ class Solver:
             self.source.surface.x
         )
         fw_h_surface_n = np.sqrt(len(self.source.surface.x) / 6)
-        cell_area = (2 * fw_h_surface_r / fw_h_surface_n) ** 2
+        cell_area = (fw_h_surface_r / (fw_h_surface_n - 1)) ** 2
 
         logger.debug("Calculating the thickness term...")
-        p_t_tau = (
-            cell_area
-            / (4 * np.pi)
-            * (self.config.solver.constants.rho_0 * self.v_n_dot / self.r)
+        p_t_tau = cell_area * (
+            self.config.solver.constants.rho_0 * self.v_n_dot / self.r
         )
 
         logger.debug("Calculating the loading term...")
-        p_l_tau = (
-            cell_area
-            / (4 * np.pi)
-            * (
-                (
-                    self.p_dot
-                    * self.cos_theta
-                    / (self.config.solver.constants.c_0 * self.r)
-                )
-                + (self.source.pressure * self.cos_theta / self.r**2)
+        p_l_tau = cell_area * (
+            (
+                self.p_dot
+                * self.cos_theta
+                / (self.config.solver.constants.c_0 * self.r)
             )
+            + (self.source.pressure * self.cos_theta / self.r**2)
         )
 
-        p_tau = p_t_tau + p_l_tau
+        p_tau = (p_t_tau + p_l_tau) / (4 * np.pi)
 
         logger.info("Converting pressure from source time to observer time...")
         logger.debug("Preallocating pressure array...")
@@ -213,3 +210,60 @@ class Solver:
 
         self._convert_source_to_observer_pressure(p_tau, retarded_time)
         logger.info("Finished converting pressure to observer time.")
+
+    def validate(self) -> None:
+        """Calculate observer pressure using analytical functions."""
+        logger.info(
+            "Calculating validation pressure over observer time domain..."
+        )
+        data = NumericalSourceParams(
+            x=self.observer_surface.x[:, np.newaxis],
+            y=self.observer_surface.y[:, np.newaxis],
+            z=self.observer_surface.z[:, np.newaxis],
+            x_0=self.source.config.source.point.x,
+            y_0=self.source.config.source.point.y,
+            z_0=self.source.config.source.point.z,
+            t=self.time_domain[np.newaxis, :],
+            amplitude=self.source.config.source.amplitude,
+            omega=self.source.config.source.frequency,
+            c_0=self.source.config.source.constants.c_0,
+            rho_0=self.source.config.source.constants.rho_0,
+        )
+        self.p_analytical = self.source.analytical_source.pressure(data)
+
+    def write(self, *exclude: tuple[str, ...]) -> None:
+        """Write relevant data to a NumPy .npz archive.
+
+        Parameters
+        ----------
+        exclude
+            List of arrays to exclude from writing to the file.
+
+        """
+        logger.info("Writing analytical source data to file...")
+        arrays = {
+            "time_domain": self.time_domain,
+            "p": self.p,
+            "p_analytical": self.p_analytical,
+        }
+        arrays = {k: v for k, v in arrays.items() if k not in exclude}
+
+        output_dir = self.config.global_config.output.output_dir
+
+        timestamp = datetime.datetime.now(tz=datetime.UTC).strftime(
+            self.config.global_config.output.output_file_timestamp
+        )
+
+        config_path = Path(output_dir) / f"{timestamp}-fw-h-config.yaml"
+        with config_path.open("w") as file:
+            logger.info("Writing config to %s...", config_path)
+            yaml.dump(
+                self.config.model_dump(warnings="error"),
+                file,
+                default_flow_style=False,
+            )
+
+        data_path = Path(output_dir) / f"{timestamp}-fw-h.npz"
+        logger.info("Writing data to %s...", data_path)
+        logger.info("This may take a while...")
+        np.savez_compressed(data_path, **arrays)

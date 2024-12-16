@@ -14,7 +14,7 @@ from fw_h.config import (
 )
 from fw_h.solver import Solver
 from fw_h.source import SourceData
-from fw_h.visualize import animate_surface_pressure
+from fw_h.visualize import animate_surface_pressure, plot_observer_pressure
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -130,7 +130,7 @@ def source_routine(
     if write:
         logger.info("Beginning source writing routine...")
         exclude = ("velocity_potential",)
-        source.write(exclude)
+        source.write(*exclude)
 
     animate_surface_pressure(
         source.surface, source.time_domain, source.pressure
@@ -153,6 +153,11 @@ def solver_routine(logger: logging.Logger, config: ConfigSchema) -> None:
     source.load()
     solver = Solver(config, source)
     solver.compute()
+    solver.validate()
+    solver.write()
+    plot_observer_pressure(
+        solver.time_domain, solver.p, solver.p_analytical[0]
+    )
 
 
 def main() -> None:
