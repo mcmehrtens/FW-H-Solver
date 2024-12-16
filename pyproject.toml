@@ -38,7 +38,7 @@ exclude = [
     "input",
     "log",
     "output",
-    "source",
+    "docs",
 ]
 line-length = 79
 

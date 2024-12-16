@@ -248,6 +248,6 @@ log/
 .DS_Store
 
 # Sphinx
-source/*.rst
-!source/index.rst
-!source/modules.rst
+docs/*.rst
+!docs/index.rst
+!docs/modules.rst
